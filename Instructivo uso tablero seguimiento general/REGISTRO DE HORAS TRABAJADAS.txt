@@ -1,0 +1,65 @@
+DASHBOARD REGISTRO DE HORAS TRABAJADAS
+
+
+ETIQUETA 1 % promedio de ocupación
+	medida % promedio ocupación
+% prom ocupacion = AVERAGE( ocupacion_Maquina[% ocupacion])
+
+% ocupacion = IF(ocupacion_Maquina[Unidad_Medida] = "k", BLANK(), DIVIDE(ocupacion_Maquina[Total_dias_trabajadas],ocupacion_Maquina[Dias_Mes]))
+
+ETIQUETA 2 Horas Maquina
+
+suma columna horas maquina de la tabla informes diarios
+
+ETIQUETA 3 Q Maq indisponibles
+q maquinas fuera servicio = CALCULATE(DISTINCTCOUNT('informes-diarios-bi'[Maquina]),'informes-diarios-bi'[equipo fuera de servicio] = 1)
+
+equipo fuera de servicio = IF('informes-diarios-bi'[Contratante] = "MANTENIMIENTO",1,0) 
+
+ETIQUETA 4 % equipos no operativos
+% equipos no operativos = DIVIDE([q de dias con equipos fuera de servicio], [reportes elaborados]) 
+
+q de dias con equipos fuera de servicio = CALCULATE(DISTINCTCOUNT('informes-diarios-bi'[consecutivo]), 'informes-diarios-bi'[equipo fuera de servicio] = 1)
+
+reportes elaborados = CALCULATE(DISTINCTCOUNT('informes-diarios-bi'[ID])) 
+
+
+GRAFICO DE BARRAS / Q HORAS POR EQUIPO
+
+EJE Y: equipo
+EJE X : sum de horas maquina de la tabla informes diarios
+
+GRAFICO DE LINEAS / % PROMEDIO OCUPACION YU CANTIDAD DE EQUIPOS OPERANDO POR MES
+
+EJE X: mes
+
+EJE Y: 
+	- % prom ocupacion = AVERAGE( ocupacion_Maquina[% ocupacion])
+	- % equipos fuera de servicio = DIVIDE(
+    CALCULATE(COUNT('informes-diarios-bi'[Maquina]),'informes-diarios-bi'[equipo fuera de servicio] = 1),
+    COUNT('informes-diarios-bi'[Maquina]))
+EJE Y SECUNDARIO: 
+	Recuento de 'ocupacion_Maquina[Maquima_nombre_completo]
+
+TABLA INFORMATIVA
+
+	COLUMNA 1 DIAS TRABAJADOS
+	Dias trabajados = CALCULATE(DISTINCTCOUNT ( 'informes-diarios-bi'[Fecha] ))
+	COLUMNA 2 DIA - MES
+	dias mes = 
+VAR _mes = SELECTEDVALUE ( 'informes-diarios-bi'[AñoMes] )
+VAR _fecha = MAX ( 'informes-diarios-bi'[Fecha] )
+RETURN
+IF (
+    ISBLANK ( [Dias trabajados] ),
+    BLANK(),
+    DAY ( EOMONTH ( _fecha, 0 ) )
+)	
+	COLUMNA 3 % OCUPACION
+	% ocupacion = DIVIDE([Dias trabajados],[dias mes]) 
+	COLUMNA 4 REPORTES ELABORADOS
+	reportes elaborados = CALCULATE(DISTINCTCOUNT('informes-diarios-bi'[ID])) 
+	COLUMNA 5 HORAS MAQUINA
+	suma horas maquina de la tabla informes diarios
+	COLUMNA 6 HORAS HOMBRE
+	sum columna horas hombre de la tabla informes diarios

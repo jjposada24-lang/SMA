@@ -1,0 +1,41 @@
+DASHBOARD DE MANTENIMIENTOS CORRECTIVOS
+
+ETIQUETA 1 Q CORRECTIVOS
+	Q CORRECTIVOS = CALCULATE(DISTINCTCOUNT('mantenimiento-correctivo-bi'[Consecutivo]))
+
+ETIQUETA 2 DIAS PROM ENTRE MANTENIMIENTOS
+	prom dias entre mantenimientos = AVERAGE('mantenimiento-correctivo-bi'[Dias_Entre_Mantenimientos])
+
+Dias_Entre_Mantenimientos = 
+VAR fAnterior = 'mantenimiento-correctivo-bi'[Fecha_Mantenimiento_Anterior]
+VAR fActual   = 'mantenimiento-correctivo-bi'[Fecha]
+RETURN
+IF( ISBLANK( fAnterior ), BLANK(), DATEDIFF( fAnterior, fActual, DAY ) )
+
+
+GRAFICO DE BARRAS / Q CORRECTIVOS POR EQUIPO
+
+EJE Y: equipo
+EJE X: Q CORRECTIVOS = CALCULATE(DISTINCTCOUNT('mantenimiento-correctivo-bi'[Consecutivo]))
+
+GRAFICO DE LINEAS / CANTIDAD EQUIPOS INTERVENIDOS Y CORRECTIVOS TOTALES REALIZADOS X MES
+
+EJE X: mes
+
+EJE Y: Q CORRECTIVOS = CALCULATE(DISTINCTCOUNT('mantenimiento-correctivo-bi'[Consecutivo]))
+
+EJE Y SECUNDARIA: Recuento de 'mantenimiento-correctivo-bi'[Maquina]
+
+TABLA DETALLE
+
+	COLUMNA 1 MTTB prom dias entre mantenimientos = AVERAGE('mantenimiento-correctivo-bi'[Dias_Entre_Mantenimientos])
+
+	COLUMNA 2 MTTR 
+PROM HR MANTENIMIENTOS = AVERAGE('mantenimiento-correctivo-bi'[normalizacion tiempo]) 
+
+normalizacion tiempo = IF('mantenimiento-correctivo-bi'[Tiempo]>=100, BLANK(),'mantenimiento-correctivo-bi'[Tiempo]) 
+
+	COLUMNA 3 Q CORRECTIVOS RALIZADOS}
+Q CORRECTIVOS = CALCULATE(DISTINCTCOUNT('mantenimiento-correctivo-bi'[Consecutivo]))
+
+

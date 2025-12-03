@@ -1,0 +1,107 @@
+COMBUSTIBLES
+- GALONES TOTALES POR MAQUINA / GRAFICO DE BARRAS
+EJE X : nombre del equipo
+EJE Y:
+	medida galones totales
+
+	galones totales = CALCULATE(SUM('informes-diarios-bi'[Combustible])) 
+
+
+- GALONES TOTALES Y CONSUMO PROMEDIO POR FECHA / GRAFICO DE LINEAS
+EJE X: fecha
+EJE Y PRIMARIO: 
+	galones totales = CALCULATE(SUM('informes-diarios-bi'[Combustible]))
+ 
+EJE Y SECUNDARIO: 
+		medida consumo promedio
+		IF (
+    SELECTEDVALUE ( 'maquinas-bi'[tipo frecuencia 2] ) = "Horas",
+    [Consumo promedio (horas)],
+    [Consumo promedio (Kilometros)]
+)
+
+Consumo promedio (horas) = AVERAGE('informes-diarios-bi'[Galones/hora])
+Consumo promedio (Kilometros) = AVERAGE('informes-diarios-bi'[Kilometros/Galon]) 
+
+Galones/hora = DIVIDE('informes-diarios-bi'[Cantidad Gal ultimo tanqueo],'informes-diarios-bi'[Dif hora tanqueo]) 
+Kilometros/Galon = IF(DIVIDE('informes-diarios-bi'[Dif kilometro tanqueo],'informes-diarios-bi'[Cantidad Gal ultimo tanqueo (k)]) = 0,
+                    BLANK(),
+                    DIVIDE('informes-diarios-bi'[Dif kilometro tanqueo],'informes-diarios-bi'[Cantidad Gal ultimo tanqueo (k)]))
+
+- CONSUMO TOTAL Y PROMEDIO X MES / GRAFICO DE BARRAS
+EJE X= mes
+EJE Y= 
+	medida galones totales
+	galones totales = CALCULATE(SUM('informes-diarios-bi'[Combustible]))
+ 
+		medida consumo promedio
+		IF (
+    SELECTEDVALUE ( 'maquinas-bi'[tipo frecuencia 2] ) = "Horas",
+    [Consumo promedio (horas)],
+    [Consumo promedio (Kilometros)]
+)
+
+Consumo promedio (horas) = AVERAGE('informes-diarios-bi'[Galones/hora])
+Consumo promedio (Kilometros) = AVERAGE('informes-diarios-bi'[Kilometros/Galon]) 
+
+Galones/hora = DIVIDE('informes-diarios-bi'[Cantidad Gal ultimo tanqueo],'informes-diarios-bi'[Dif hora tanqueo]) 
+Kilometros/Galon = IF(DIVIDE('informes-diarios-bi'[Dif kilometro tanqueo],'informes-diarios-bi'[Cantidad Gal ultimo tanqueo (k)]) = 0,
+                    BLANK(),
+                    DIVIDE('informes-diarios-bi'[Dif kilometro tanqueo],'informes-diarios-bi'[Cantidad Gal ultimo tanqueo (k)]))
+
+- TABLA INFORMATIVA
+	COLUMNA 1 = HORAS TRABAJADAS:
+	sum columna horas-marquinas de la tabla informes diarias
+	Horas_Maquina = 
+IF(
+    ISBLANK('informes-diarios-bi'[Horometro]) || ISBLANK('informes-diarios-bi'[HorometroF]),
+    BLANK(),
+    ('informes-diarios-bi'[HorometroF] - 'informes-diarios-bi'[Horometro])
+)
+
+	COLUMNA 2 = KILOMETROS TRABAJADOS
+	sum columna kilometrostrabajados de la tabla informes diarios
+	KilometrosTrabajados = IF(('informes-diarios-bi'[KilometrajeF] - 'informes-diarios-bi'[Kilometraje]) = 0 ,BLANK(),'informes-diarios-bi'[KilometrajeF] - 'informes-diarios-bi'[Kilometraje])
+
+	COLUMNA 3 = GAL PROM SUMINISTRADOS
+	medida consumopromediodia 
+ConsumoPromedioDia = 
+DIVIDE( [galones totales], CALCULATE(DISTINCTCOUNT( 'informes-diarios-bi'[Fecha] ),NOT(ISBLANK('informes-diarios-bi'[Combustible])), 'informes-diarios-bi'[Combustible] <> 0) )
+
+	COLUMNA 4 = Q MAQUINAS ABASTECIDAS
+	medida MaquinasConConsumo
+MaquinasConConsumo = 
+VAR MachinesWithConsumption =
+    FILTER(
+        VALUES('informes-diarios-bi'[Maquina]),
+        CALCULATE([ConsumoTotal]) > 0
+    )
+RETURN
+COUNTROWS(MachinesWithConsumption)
+
+ConsumoTotal = 
+SUMX(
+    'informes-diarios-bi',
+    VAR h0 = IFERROR(VALUE('informes-diarios-bi'[Horometro]), BLANK())
+    VAR h1 = IFERROR(VALUE('informes-diarios-bi'[HorometroF]), BLANK())
+    VAR prom = IFERROR(VALUE('informes-diarios-bi'[Promedio]), BLANK())
+    VAR kT = IFERROR(VALUE('informes-diarios-bi'[KTanqueo]), BLANK())
+    VAR hT = IFERROR(VALUE('informes-diarios-bi'[HTanqueo]), BLANK())
+    VAR calc1 = IF( NOT ISBLANK(h1) && NOT ISBLANK(h0) && NOT ISBLANK(prom) && h1 >= h0,
+                    (h1 - h0) * prom, BLANK() )
+    VAR calc2 = IF( NOT ISBLANK(kT) && kT > 0, kT, BLANK() )
+    VAR calc3 = IF( NOT ISBLANK(hT) && hT > 0 && NOT ISBLANK(prom), hT * prom, BLANK() )
+    RETURN COALESCE(calc1, calc2, calc3)
+)
+
+
+	COLUMNA 5 = Q DE TANQUEOS
+	medida cantidad tanqueos =
+Cantidad Tanqueos = CALCULATE( DISTINCTCOUNT('informes-diarios-bi'[Combustible]),NOT(ISBLANK('informes-diarios-bi'[Combustible])), 'informes-diarios-bi'[Combustible] <> 0)
+
+	ETIQUETA 1 = GALONES TOTALES
+	medida galones totales
+	ETIQUETA 2 = MAQUINAS CON CONSUMO
+	medida MaquinasConConsumo
+	ETIQUETA 3 = CONSUMO PROMEDIO
+	medida Consumo Promedio

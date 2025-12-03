@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Técnica de Cálculo de Medidas - Dashboards de Seguimiento</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            color: #333;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            background-color: #fff;
+        }
+
+        /* Header y Logo */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 4px solid #FFC000; /* Amarillo corporativo aproximado */
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+        .logo-container {
+            width: 200px;
+        }
+        .logo-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .doc-title {
+            text-align: right;
+        }
+        .doc-title h1 {
+            font-size: 24px;
+            margin: 0;
+            color: #333;
+            text-transform: uppercase;
+        }
+        .doc-title p {
+            margin: 5px 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Títulos */
+        h2 {
+            color: #333;
+            font-size: 22px;
+            margin-top: 50px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            page-break-after: avoid;
+        }
+        h3 {
+            color: #FFC000; /* Amarillo para subtítulos */
+            background-color: #333; /* Fondo oscuro para contraste */
+            padding: 8px 15px;
+            font-size: 18px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: inline-block;
+            page-break-after: avoid;
+        }
+        h4 {
+            color: #555;
+            font-size: 16px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-left: 4px solid #FFC000;
+            padding-left: 10px;
+        }
+
+        /* Contenido */
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        
+        /* Bloques de código / Fórmulas */
+        .formula-box {
+            background-color: #f5f5f5;
+            border-left: 4px solid #555;
+            padding: 15px;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            font-size: 0.9em;
+            margin: 10px 0 20px 0;
+            color: #444;
+            white-space: pre-wrap;
+        }
+
+        /* Tablas */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 0.9em;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        }
+        table thead tr {
+            background-color: #333;
+            color: #ffffff;
+            text-align: left;
+        }
+        table th, table td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+        }
+        table tbody tr {
+            border-bottom: 1px solid #dddddd;
+        }
+        table tbody tr:nth-of-type(even) {
+            background-color: #f3f3f3;
+        }
+
+        /* Listas */
+        ul {
+            margin-bottom: 20px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+
+        /* Pie de página */
+        .footer {
+            margin-top: 80px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+
+        /* Estilos de Impresión */
+        @media print {
+            body {
+                padding: 0;
+                max-width: 100%;
+            }
+            h2 {
+                page-break-before: always;
+            }
+            h2:first-of-type {
+                page-break-before: auto;
+            }
+            .formula-box {
+                background-color: #eee !important;
+                -webkit-print-color-adjust: exact;
+            }
+            h3 {
+                background-color: #333 !important;
+                color: #FFC000 !important;
+                -webkit-print-color-adjust: exact;
+            }
+            table thead tr {
+                background-color: #333 !important;
+                color: #fff !important;
+                -webkit-print-color-adjust: exact;
+            }
+            .header {
+                 border-bottom: 4px solid #FFC000 !important;
+                 -webkit-print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo-container">
+            <!-- IMPORTANTE: El usuario debe guardar su imagen como logo.png en la misma carpeta -->
+            <img src="logo_sma.png" alt="SMA Logo" onerror="this.style.display='none'; document.getElementById('logo-alt').style.display='block';">
+            <div id="logo-alt" style="display:none; font-weight:bold; color:#FFC000; background:#333; padding:10px;">SMA INGENIERÍA</div>
+        </div>
+        <div class="doc-title">
+            <h1>Guía Técnica de Cálculo</h1>
+            <p>Dashboards de Seguimiento</p>
+        </div>
+    </div>
+
+    <p>Este documento detalla las reglas de negocio y cálculos matemáticos para los tableros de seguimiento.</p>
+
+    <!-- PARTE 1: COMBUSTIBLES -->
+    <h2>Parte 1: Dashboard Combustibles</h2>
+
+    <h3>1. Medidas Base y Fórmulas Explicadas</h3>
+
+    <h4>Galones Totales</h4>
+    <p>Es la suma acumulada de todo el combustible reportado en los informes diarios.</p>
+    <div class="formula-box">Suma de la columna [Combustible]</div>
+
+    <h4>Horas Trabajadas (Por registro)</h4>
+    <p>Calcula la diferencia entre el horómetro final y el inicial. Si alguno de los datos no existe (está vacío), el resultado se considera vacío para evitar errores.</p>
+    <div class="formula-box">Horómetro Final - Horómetro Inicial</div>
+
+    <h4>Kilómetros Trabajados (Por registro)</h4>
+    <p>Calcula la diferencia entre el kilometraje final y el inicial. Si la diferencia es cero, se ignora el registro; de lo contrario, muestra la distancia recorrida.</p>
+    <div class="formula-box">Kilometraje Final - Kilometraje Inicial</div>
+
+    <h4>Rendimiento: Galones por Hora</h4>
+    <p>Indicador de eficiencia temporal. Divide la cantidad de galones del último tanqueo entre la diferencia de horas transcurridas entre tanqueos.</p>
+    <div class="formula-box">Cantidad Galones Último Tanqueo / Diferencia Horas Tanqueo</div>
+
+    <h4>Rendimiento: Kilómetros por Galón</h4>
+    <p>Indicador de eficiencia por distancia. Divide la diferencia de kilómetros recorridos entre los galones suministrados. Si la cantidad de galones es cero, no realiza el cálculo.</p>
+    <div class="formula-box">Diferencia Kilómetros Tanqueo / Cantidad Galones Último Tanqueo (k)</div>
+
+    <h4>Consumo Promedio (Horas)</h4>
+    <p>Obtiene el promedio simple de todos los registros de rendimiento calculados en horas.</p>
+    <div class="formula-box">Promedio de la columna [Galones/hora]</div>
+
+    <h4>Consumo Promedio (Kilómetros)</h4>
+    <p>Obtiene el promedio simple de todos los registros de rendimiento calculados en kilómetros.</p>
+    <div class="formula-box">Promedio de la columna [Kilometros/Galon]</div>
+
+    <h4>Consumo Promedio Dinámico</h4>
+    <p>Esta medida decide qué promedio mostrar basándose en la selección del usuario (si seleccionó ver por "Horas" o por "Kilómetros").</p>
+    <div class="formula-box">SI (Selección es "Horas")
+    ENTONCES Mostrar [Consumo Promedio (horas)]
+SINO
+    Mostrar [Consumo Promedio (Kilometros)]</div>
+
+    <h4>Consumo Promedio Diario</h4>
+    <p>Calcula cuántos galones se consumen en promedio por día activo. Divide el total de galones entre la cantidad de días distintos en los que hubo registro de combustible.</p>
+    <div class="formula-box">[Galones Totales] / Cantidad de Días con registro de Combustible</div>
+
+    <h4>Consumo Total (Cálculo Inteligente)</h4>
+    <p>Es una suma compleja que intenta calcular el consumo priorizando la mejor información disponible en el siguiente orden: 1. Diferencia de horómetros multiplicada por el promedio, 2. Kilometraje de tanqueo directo, 3. Horas de tanqueo multiplicadas por el promedio.</p>
+    <div class="formula-box">Suma de (Cálculo basado en Horómetros O BIEN Tanqueo Directo)</div>
+
+    <h4>Máquinas con Consumo</h4>
+    <p>Cuenta cuántas máquinas únicas tienen un consumo calculado mayor a cero en el periodo seleccionado.</p>
+    <div class="formula-box">Contar máquinas donde [Consumo Total] es mayor a 0</div>
+
+    <h4>Cantidad de Tanqueos</h4>
+    <p>Cuenta cuántos registros únicos de suministro de combustible (diferentes de cero) existen en la base de datos.</p>
+    <div class="formula-box">Conteo distinto de registros en columna [Combustible]</div>
+
+    <h3>2. Descripción de Cada Visualización</h3>
+
+    <p><strong>Galones Totales por Máquina (Gráfico de Barras)</strong><br>
+    Muestra el volumen total de combustible consumido desglosado por cada equipo individual.<br>
+    Ejes: <em>Nombre del equipo</em> vs <em><strong>Galones Totales</strong></em>.</p>
+
+    <p><strong>Galones Totales y Consumo Promedio por Fecha (Gráfico de Líneas - Eje doble)</strong><br>
+    Muestra la evolución temporal del consumo de combustible comparada con la eficiencia.<br>
+    Ejes: <em>Fecha</em> vs <em><strong>Galones Totales</strong></em> (Primario) y <em><strong>Consumo Promedio Dinámico</strong></em> (Secundario).</p>
+
+    <p><strong>Consumo Total y Promedio x Mes (Gráfico de Barras)</strong><br>
+    Resumen mensual acumulado para analizar tendencias.<br>
+    Usa: <em><strong>Galones Totales</strong></em> y <em><strong>Consumo Promedio Dinámico</strong></em>.</p>
+
+    <p><strong>Tabla Informativa</strong></p>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre Columna</th>
+                <th>Qué muestra</th>
+                <th>Medida utilizada</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Columna 1</td>
+                <td>Total de horas operativas</td>
+                <td>Suma de <strong>Horas Trabajadas</strong></td>
+            </tr>
+            <tr>
+                <td>Columna 2</td>
+                <td>Total de distancia recorrida</td>
+                <td>Suma de <strong>Kilómetros Trabajados</strong></td>
+            </tr>
+            <tr>
+                <td>Columna 3</td>
+                <td>Promedio de galones por día</td>
+                <td><strong>Consumo Promedio Diario</strong></td>
+            </tr>
+            <tr>
+                <td>Columna 4</td>
+                <td>Cantidad de equipos activos</td>
+                <td><strong>Máquinas con Consumo</strong></td>
+            </tr>
+            <tr>
+                <td>Columna 5</td>
+                <td>Frecuencia de abastecimiento</td>
+                <td><strong>Cantidad de Tanqueos</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><strong>Etiquetas (Tarjetas):</strong> 1. <strong>Galones Totales</strong>, 2. <strong>Máquinas con Consumo</strong>, 3. <strong>Consumo Promedio</strong>.</p>
+
+    <!-- PARTE 2: REGISTRO DE HORAS -->
+    <h2>Parte 2: Dashboard Registro de Horas Trabajadas</h2>
+
+    <h3>1. Medidas Base y Fórmulas Explicadas</h3>
+
+    <h4>% Ocupación (Por registro)</h4>
+    <p>Calcula el porcentaje de ocupación de un equipo. Si la unidad de medida es kilómetros ("k"), no aplica.</p>
+    <div class="formula-box">SI (Unidad de Medida es "k") ENTONCES Vacío
+SINO Días Trabajados / Días del Mes</div>
+
+    <h4>% Promedio Ocupación</h4>
+    <p>Promedio simple de los porcentajes de ocupación calculados individualmente.</p>
+    <div class="formula-box">Promedio de la columna [% Ocupación]</div>
+
+    <h4>Horas Máquina</h4>
+    <p>Suma total de las horas reportadas para la maquinaria.</p>
+    <div class="formula-box">Suma de la columna [Horas Máquina]</div>
+
+    <h4>Horas Hombre</h4>
+    <p>Suma total de las horas hombre reportadas.</p>
+    <div class="formula-box">Suma de la columna [Horas Hombre]</div>
+
+    <h4>Equipo Fuera de Servicio</h4>
+    <p>Marca con un 1 si el equipo está en mantenimiento (Contratante = "MANTENIMIENTO").</p>
+    <div class="formula-box">SI (Contratante es "MANTENIMIENTO") ENTONCES 1 SINO 0</div>
+
+    <h4>Cantidad de Máquinas Indisponibles</h4>
+    <p>Cuenta cuántas máquinas distintas han estado fuera de servicio.</p>
+    <div class="formula-box">Conteo distinto de Máquinas donde [Equipo Fuera de Servicio] es 1</div>
+
+    <h4>Reportes Elaborados</h4>
+    <p>Cuenta la cantidad total de reportes únicos generados.</p>
+    <div class="formula-box">Conteo distinto de [ID] de reporte</div>
+
+    <h4>% Equipos No Operativos</h4>
+    <p>Indicador de inoperatividad.</p>
+    <div class="formula-box">[Días con Equipos Fuera de Servicio] / [Reportes Elaborados]</div>
+
+    <h3>2. Descripción de Cada Visualización</h3>
+
+    <p><strong>Gráfico de Barras: Q Horas por Equipo</strong><br>
+    Total de horas trabajadas por cada equipo.<br>
+    Ejes: <em><strong>Horas Máquina</strong></em> vs <em>Nombre del Equipo</em>.</p>
+
+    <p><strong>Gráfico de Líneas: % Promedio Ocupación y Equipos Operando</strong><br>
+    Comparativa mensual de la ocupación y el estado de la flota.<br>
+    Ejes: <em><strong>% Promedio Ocupación</strong></em>, <em>% Equipos Fuera de Servicio</em> y <em>Cantidad de equipos</em>.</p>
+
+    <p><strong>Tabla Informativa</strong></p>
+    <table>
+        <thead>
+            <tr>
+                <th>Columna</th>
+                <th>Qué muestra</th>
+                <th>Medida utilizada</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Col 1</td>
+                <td>Días Trabajados</td>
+                <td><strong>Días Trabajados</strong></td>
+            </tr>
+            <tr>
+                <td>Col 3</td>
+                <td>% Ocupación</td>
+                <td><strong>Días Trabajados</strong> / <strong>Días del Mes</strong></td>
+            </tr>
+            <tr>
+                <td>Col 5</td>
+                <td>Horas Máquina</td>
+                <td><strong>Horas Máquina</strong></td>
+            </tr>
+            <tr>
+                <td>Col 6</td>
+                <td>Horas Hombre</td>
+                <td><strong>Horas Hombre</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- PARTE 3: DETALLADO SERVICIOS -->
+    <h2>Parte 3: Dashboard Detallado de Servicios</h2>
+
+    <h3>1. Medidas Base</h3>
+
+    <h4>Horas Hombre Trabajadas</h4>
+    <p>Tiempo neto de trabajo en horas.</p>
+    <div class="formula-box">(Tiempo Total Trabajo * 24) - Tiempo Descanso en Horas</div>
+
+    <h4>Clasificación de Jornada</h4>
+    <p>Categoriza el turno (Diurno, Nocturno, Festivo, Dominical) basándose en horarios y fechas.</p>
+    <div class="formula-box">SI (Horas Nocturnas >= Total Horas / 2) ENTONCES "Nocturno" SINO "Diurno"
++ (SI Es Festivo o Domingo agregrar sufijo)</div>
+
+    <h3>2. Visualizaciones</h3>
+    
+    <p><strong>Horas Trabajadas por Jornada (Barras):</strong> Distribución por tipo de jornada (<strong>Clasificación de Jornada</strong> vs <strong>Horas Hombre</strong>).</p>
+    <p><strong>Horas Trabajadas por Día (Líneas):</strong> Tendencia diaria de consumo de horas.</p>
+
+    <!-- PARTE 4: MANTENIMIENTOS CORRECTIVOS -->
+    <h2>Parte 4: Dashboard Mantenimientos Correctivos</h2>
+
+    <h3>1. Medidas Base</h3>
+
+    <h4>Q Correctivos</h4>
+    <p>Conteo de registros únicos de mantenimientos correctivos.</p>
+    <div class="formula-box">Conteo distinto de [Consecutivo]</div>
+
+    <h4>Promedio Días Entre Mantenimientos (MTTB)</h4>
+    <p>Promedio de tiempo entre fallas.</p>
+    <div class="formula-box">Promedio de [Fecha Actual - Fecha Mantenimiento Anterior]</div>
+
+    <h4>Promedio Horas Mantenimiento (MTTR)</h4>
+    <p>Duración promedio de las reparaciones (tiempo normalizado < 100).</p>
+    <div class="formula-box">Promedio de [Tiempo Normalizado]</div>
+
+    <h3>2. Visualizaciones</h3>
+    
+    <p><strong>Q Correctivos por Equipo:</strong> Cantidad de fallas por máquina.</p>
+    <p><strong>Evolución Mensual:</strong> <strong>Q Correctivos</strong> y Cantidad de Equipos intervenidos por mes.</p>
+
+    <!-- PARTE 5: MANTENIMIENTOS PREVENTIVOS -->
+    <h2>Parte 5: Dashboard Mantenimientos Preventivos</h2>
+
+    <h3>1. Medidas Base</h3>
+
+    <h4>Frecuencia Vigente (h)</h4>
+    <p>Máxima frecuencia en horas configurada en el último mantenimiento.</p>
+    
+    <h4>% Avance a Mantenimiento</h4>
+    <p>Porcentaje del ciclo de vida del mantenimiento consumido.</p>
+    <div class="formula-box">[Horas Desde Último Mantenimiento] / [Frecuencia Vigente]</div>
+
+    <h4>Estado Mantenimiento</h4>
+    <p>Alerta visual del estado.</p>
+    <div class="formula-box">SI (>100%) "Vencido" | SI (>80%) "Próximo" | SINO "OK"</div>
+
+    <h4>Próximo Mantenimiento (Tipo)</h4>
+    <p>Predicción de secuencia cíclica (A -> B -> A1 -> C...).</p>
+
+    <h4>Fecha Estimada Próximo Mantenimiento</h4>
+    <p>Fecha calendario proyectada según el ritmo de trabajo diario promedio.</p>
+    <div class="formula-box">Hoy + ([Horas Restantes] / [Promedio Horas Diarias])</div>
+
+    <h3>2. Visualizaciones</h3>
+    
+    <p><strong>% Avance Próximo Mantenimiento (Barras):</strong> Nivel de desgaste actual por equipo.</p>
+    
+    <p><strong>Tabla de Planificación:</strong></p>
+    <table>
+        <thead>
+            <tr>
+                <th>Indicador</th>
+                <th>Descripción</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Estado</td>
+                <td>Alerta de semáforo (Vencido/Próximo/OK)</td>
+            </tr>
+            <tr>
+                <td>Tipo Sugerido</td>
+                <td>Siguiente tipo de mantenimiento en la secuencia</td>
+            </tr>
+            <tr>
+                <td>Fecha Estimada</td>
+                <td>Fecha calendario calculada para el servicio</td>
+            </tr>
+            <tr>
+                <td>Horas Restantes</td>
+                <td>Horas operativas remanentes antes del límite</td>
+            </tr>
+             <tr>
+                <td>Horómetro Meta</td>
+                <td>Lectura del horómetro donde debe ocurrir el servicio</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Guía Técnica Generada para SMA Ingeniería y Gestión Online - Uso Interno</p>
+    </div>
+
+</body>
+</html>
+

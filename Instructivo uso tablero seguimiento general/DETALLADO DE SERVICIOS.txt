@@ -1,0 +1,95 @@
+DASHBOARD DETALLADO DE SERVICIOS
+
+ETIQUETA 1 HORAS HOMBRE
+HorasHombreTrabajadas = ('informes-diarios-bi'[tiempo total de trabajo] * 24) - 'informes-diarios-bi'[Tiempo_descanso_horas]
+
+
+ETIQUETA 2 FECHA MIN SELECCIONADA
+	Fecha min seleccionada = 
+CALCULATE (
+    MIN ( 'informes-diarios-bi'[Fecha] ),
+    ALLSELECTED ( 'informes-diarios-bi'[Fecha] )
+)
+
+ETIQUETRA 3 FECHA MAXIMA SELECCIONADA
+Fecha max seleccionada = 
+CALCULATE (
+    MAX ( 'informes-diarios-bi'[Fecha] ),
+    ALLSELECTED ( 'informes-diarios-bi'[Fecha] )
+)
+
+ETIQUETA 4 DIAS SELECCIONADOS
+Dias seleccionados = 
+VAR _min = [Fecha min seleccionada]
+VAR _max = [Fecha max seleccionada]
+RETURN
+IF (
+    ISBLANK ( _min ) || ISBLANK ( _max ),
+    BLANK(),
+    DATEDIFF ( _min, _max, DAY ) + 1
+)
+
+
+GARFICO DE BARRAS / HROAS TRABAJADAS POR JORNADA
+
+EJE Y: 
+Jornada_Clasificacion = 
+VAR _fecha = 'informes-diarios-bi'[Fecha]
+VAR _ini_t = 'informes-diarios-bi'[hora_inicio_jornada]   -- tipo time
+VAR _fin_t = 'informes-diarios-bi'[hora_fin_jornada]      -- tipo time
+
+-- Validaciones básicas
+VAR _hasData = NOT ( ISBLANK ( _ini_t ) || ISBLANK ( _fin_t ) )
+
+-- Pasar a horas decimales (DAX time es fracción de día)
+VAR _s = _ini_t * 24
+VAR _e0 = _fin_t * 24
+-- Si cruza medianoche, sumamos 24h al fin
+VAR _e = IF ( _e0 <= _s, _e0 + 24, _e0 )
+
+VAR _total = _e - _s
+
+-- Ventana nocturna: [21:00, 06:00] = [21,24] U [24,30]
+VAR _n1_s = 21.0
+VAR _n1_e = 24.0
+VAR _n2_s = 24.0
+VAR _n2_e = 30.0
+
+VAR _overlap1 = MAX ( 0, MIN ( _e, _n1_e ) - MAX ( _s, _n1_s ) )
+VAR _overlap2 = MAX ( 0, MIN ( _e, _n2_e ) - MAX ( _s, _n2_s ) )
+VAR _noct_hours = _overlap1 + _overlap2
+
+-- Mayoría nocturna => nocturno
+VAR _isNoct = _noct_hours >= (_total / 2)
+
+-- Domingo (WEEKDAY: tipo 2 -> Lunes=1 ... Domingo=7)
+VAR _isSunday = WEEKDAY ( _fecha, 2 ) = 7
+
+-- Festivo: usa tu tabla de fechas. Elige UNA de estas dos líneas:
+VAR _isHoliday =
+    COALESCE ( RELATED ( Dates[EsFestivo] ), FALSE() )
+    // O, si no hay relación activa con 'dates':
+    // COALESCE ( LOOKUPVALUE ( 'dates'[EsFestivo], 'dates'[Date], _fecha ), FALSE() )
+
+VAR _base = IF ( _isNoct, "🌙 Nocturno", "☀️ Diurno" )
+VAR _clas =
+    IF ( _isHoliday, _base & " festivo",
+        IF ( _isSunday, _base & " dominical", _base )
+    )
+RETURN
+IF ( NOT _hasData, BLANK(), IF ( _total <= 0, BLANK(), _clas ) )
+
+
+EJE X: HORAS TRABAJADAS
+HorasHombreTrabajadas = ('informes-diarios-bi'[tiempo total de trabajo] * 24) - 'informes-diarios-bi'[Tiempo_descanso_horas]
+
+
+
+GRAFICO DE LINEAS / HORAS TRABAJADAS POR DIA
+
+EJE X: fecha
+
+EJE Y: HorasHombreTrabajadas = ('informes-diarios-bi'[tiempo total de trabajo] * 24) - 'informes-diarios-bi'[Tiempo_descanso_horas]
+
+
+TABLA DETALLA: se seleccionan diferentes columnas de la tabla informes diarios.

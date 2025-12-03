@@ -1,0 +1,270 @@
+DASHBOARD MANTENIMIENTOS PREVENTIVOS
+
+ETIQUETA 1 CANTIDAD DE INTERVENCIONES
+	 Recuento de 'mantenimiento-preventivo-bi[Maquina]
+
+
+GRAFICO DE BARRAS / % AVANCE PROXIMO MANTENIMIENTO
+
+EJE Y: equipo
+
+EJE X:
+% Avance a Manto = 
+VAR Freq = [Frecuencia Vigente (h)]
+VAR Acum = [Horas Desde Último Manto]
+RETURN
+DIVIDE( Acum, Freq )
+Frecuencia Vigente (h) = 
+CALCULATE(
+    CALCULATE(MAX('mantenimiento-preventivo-bi'[frec_mantenimiento]), 'mantenimiento-preventivo-bi'[tipo_frec] = "h",
+    FILTER('mantenimiento-preventivo-bi', 'mantenimiento-preventivo-bi'[ultimo_mantenimiento] = 1)
+)
+)
+
+Horas Desde Último Manto = 
+VAR FUlt = [Fecha Último Manto]
+RETURN
+CALCULATE(
+    SUM('informes-diarios-bi'[Horas_Maquina]),
+    FILTER(
+        'informes-diarios-bi',
+        'informes-diarios-bi'[Fecha] > FUlt
+    )
+)
+
+
+
+GRAFICO DE LINEAS / CANTIDAD PREVENTIVOS POR MES
+
+EJE X: mes
+
+EJE Y: Recuento de 'mantenimiento-preventivo-bi[Maquina]
+
+
+TABLA DETALLE
+
+COLUMNA 1 ESTADO MMTO
+Estado Mantenimiento = 
+VAR Freq   = [Frecuencia Vigente (h)]
+VAR Avance = [% Avance a Manto (raw)]
+RETURN
+SWITCH(
+    TRUE(),
+    ISBLANK(Freq) || ISBLANK(Avance), BLANK(),
+    Avance > 1,            "Vencido/Realizar Ya",   -- estrictamente >100%
+    Avance >= 0.8,         "Próximo",               -- 80% a 100% (incluye 100%)
+    "OK"                                             -- <80%
+)
+
+
+% Avance a Manto (raw) = 
+DIVIDE( [Horas Desde Último Manto], [Frecuencia Vigente (h)], 0 )
+
+
+COLUMNA 2 TIPO PROXIMO MMTO
+Proximo_Mantenimiento = 
+VAR _maq = 'mantenimiento-preventivo-bi'[Maquina]          -- ajusta al nombre real de tu columna de máquina
+VAR _lastRow =
+    CALCULATETABLE (
+        TOPN (
+            1,
+            FILTER (
+                ALL ( 'mantenimiento-preventivo-bi' ),
+                'mantenimiento-preventivo-bi'[Maquina] = _maq
+            ),
+            'mantenimiento-preventivo-bi'[Fecha], DESC       -- ajusta al nombre real de tu columna de fecha/datetime
+        )
+    )
+VAR _ultimoTipo =
+    MAXX ( _lastRow, 'mantenimiento-preventivo-bi'[Tipo_Mantenimiento_Descripcion] )  -- "A", "B", "A1", "C"
+RETURN
+SWITCH (
+    _ultimoTipo,
+    "A",  "B",
+    "B",  "A1",
+    "A1", "C",
+    "C",  "A",
+    "SIN DEFINIR"
+)
+
+
+COLUMNA 3 FECHA ULTIMO MMTO
+Fecha Último Manto = 
+CALCULATE(
+    MAX('mantenimiento-preventivo-bi'[Fecha]),
+    FILTER(
+        'mantenimiento-preventivo-bi',
+        'mantenimiento-preventivo-bi'[ultimo_mantenimiento] = 1
+    )
+)
+
+
+COLUMNA 4 FECHA ESTIMADA PROXIMO MMTO
+
+Fecha proximo mto prueba = TODAY() + [dias restantes prueba] 
+
+dias restantes prueba = DIVIDE([Horas Restantes (RAW)], [Avg Horas Diarias (últimos 30, sin ceros)])
+
+Horas Restantes (RAW) = 
+[Frecuencia Vigente (h)] - [Horas Desde Último Manto (RAW)]
+
+Horas Desde Último Manto (RAW) = 
+VAR FUlt = [Fecha Último Manto]
+VAR Mq =
+    COALESCE(
+        SELECTEDVALUE('informes-diarios-bi'[Maquina]),
+        SELECTEDVALUE('mantenimiento-preventivo-bi'[Maquina])
+    )
+RETURN
+CALCULATE(
+    SUM('informes-diarios-bi'[Horas_Maquina]),
+    FILTER(
+        ALL('informes-diarios-bi'),
+        'informes-diarios-bi'[Maquina] = Mq
+            && 'informes-diarios-bi'[Fecha] > FUlt
+    )
+)
+
+COLUMNA 5 DIAS RESTANTES PROXIMO MMTO
+
+Días Restantes (RAW) = 
+DIVIDE( [Horas Restantes (RAW)], [Avg Horas Diarias (últimos 30, sin ceros)], 0 )
+
+Avg Horas Diarias (últimos 30, sin ceros) = 
+VAR MaqCtx =
+    COALESCE(
+        SELECTEDVALUE('informes-diarios-bi'[Maquina]),
+        SELECTEDVALUE('mantenimiento-preventivo-bi'[Maquina])
+    )
+VAR BaseMaquina =
+    FILTER(
+        ALL('informes-diarios-bi'),
+        'informes-diarios-bi'[Maquina] = MaqCtx
+    )
+VAR Ultimos30 =
+    TOPN(
+        30,
+        BaseMaquina,
+        'informes-diarios-bi'[Fecha], DESC,
+        'informes-diarios-bi'[consecutivo], DESC
+    )
+VAR Ultimos30Validos =
+    FILTER(Ultimos30, 'informes-diarios-bi'[Horas_Maquina] > 0)
+VAR n = COUNTROWS(Ultimos30Validos)
+RETURN
+IF(
+    ISBLANK(MaqCtx),
+    BLANK(),
+    IF(n = 0, BLANK(),
+        DIVIDE( SUMX(Ultimos30Validos, 'informes-diarios-bi'[Horas_Maquina]), n )
+    )
+)
+
+
+COLUMNA 6 HORAS PARA PROXIMO MMTO
+
+Horas Restantes (RAW) = 
+[Frecuencia Vigente (h)] - [Horas Desde Último Manto (RAW)]
+
+
+Horas Desde Último Manto (RAW) = 
+    VAR FUlt = [Fecha Último Manto]
+    VAR Mq =
+        COALESCE(
+            SELECTEDVALUE('informes-diarios-bi'[Maquina]),
+            SELECTEDVALUE('mantenimiento-preventivo-bi'[Maquina])
+        )
+    RETURN
+    CALCULATE(
+        SUM('informes-diarios-bi'[Horas_Maquina]),
+        FILTER(
+            ALL('informes-diarios-bi'),
+            'informes-diarios-bi'[Maquina] = Mq
+                && 'informes-diarios-bi'[Fecha] > FUlt
+        )
+    )
+
+
+
+ COLUMNA 7 HOROMETRO ULTIMO MMTO 
+
+Hora Último Manto = 
+
+CALCULATE(
+    MAX('mantenimiento-preventivo-bi'[Horometro]),               -- col. numérica del horómetro
+    FILTER(
+        'mantenimiento-preventivo-bi',
+        'mantenimiento-preventivo-bi'[ultimo_mantenimiento] = 1  -- tu flag de último manto
+    )
+)
+
+
+
+COLUMNA 7 HORAS PROXIMO MMTO
+
+Próximo Horómetro (Proyección) = 
+[Hora Último Manto] + [Frecuencia Vigente (h)]
+
+
+COLUMNA 8 HORAS TRABAJADAS DESDE ULTIMO MMTO
+
+Horas Desde Último Manto = 
+VAR FUlt = [Fecha Último Manto]
+RETURN
+CALCULATE(
+    SUM('informes-diarios-bi'[Horas_Maquina]),
+    FILTER(
+        'informes-diarios-bi',
+        'informes-diarios-bi'[Fecha] > FUlt
+    )
+)
+
+
+COLUMNA 9 PROM HORAS DE TRABAJO DIARIO
+
+Avg Horas Diarias (últimos 30, sin ceros) = 
+VAR MaqCtx =
+    COALESCE(
+        SELECTEDVALUE('informes-diarios-bi'[Maquina]),
+        SELECTEDVALUE('mantenimiento-preventivo-bi'[Maquina])
+    )
+VAR BaseMaquina =
+    FILTER(
+        ALL('informes-diarios-bi'),
+        'informes-diarios-bi'[Maquina] = MaqCtx
+    )
+VAR Ultimos30 =
+    TOPN(
+        30,
+        BaseMaquina,
+        'informes-diarios-bi'[Fecha], DESC,
+        'informes-diarios-bi'[consecutivo], DESC
+    )
+VAR Ultimos30Validos =
+    FILTER(Ultimos30, 'informes-diarios-bi'[Horas_Maquina] > 0)
+VAR n = COUNTROWS(Ultimos30Validos)
+RETURN
+IF(
+    ISBLANK(MaqCtx),
+    BLANK(),
+    IF(n = 0, BLANK(),
+        DIVIDE( SUMX(Ultimos30Validos, 'informes-diarios-bi'[Horas_Maquina]), n )
+    )
+)
+
+COLUMNA 10 % AVANCE PROXIMO MMTO
+
+% Avance a Manto = 
+VAR Freq = [Frecuencia Vigente (h)]
+VAR Acum = [Horas Desde Último Manto]
+RETURN
+DIVIDE( Acum, Freq )
+
+Frecuencia Vigente (h) = 
+CALCULATE(
+    CALCULATE(MAX('mantenimiento-preventivo-bi'[frec_mantenimiento]), 'mantenimiento-preventivo-bi'[tipo_frec] = "h",
+    FILTER('mantenimiento-preventivo-bi', 'mantenimiento-preventivo-bi'[ultimo_mantenimiento] = 1)
+)
+)
+
+

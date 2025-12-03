@@ -1,0 +1,77 @@
+% =====================================================================
+% CALENDARIO SMA 2026 - FORMATO ESCRITORIO TIPO CABALLETE
+% Compilar con XeLaTeX
+% =====================================================================
+\documentclass[11pt,landscape]{article}
+
+% --------------------- CONFIGURACIÓN BÁSICA ---------------------------
+\usepackage[letterpaper,margin=15mm]{geometry} % Carta horizontal
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{setspace}
+\usepackage{fontspec}
+\usepackage{titlesec}
+\usepackage{parskip}
+\setlength{\parskip}{6pt}
+\pagenumbering{gobble} % sin números de página
+
+% --------------------- TIPOGRAFÍA ------------------------------------
+\setmainfont{Montserrat}[
+  UprightFont = *-Regular,
+  BoldFont    = *-SemiBold,
+  ItalicFont  = *-Italic
+]
+
+% --------------------- COLORES CORPORATIVOS --------------------------
+\definecolor{SMAYellow}{HTML}{F5A623}
+\definecolor{SMADarkGray}{HTML}{2D2D2D}
+\definecolor{SMAMidGray}{HTML}{666666}
+\definecolor{SMALightGray}{HTML}{E8E8E8}
+\definecolor{SMAUltraLight}{HTML}{F5F5F5}
+
+% --------------------- ESTILOS DE TÍTULO -----------------------------
+\titleformat{\section}{\normalfont\bfseries\Large\color{SMADarkGray}}{}{0pt}{}
+\titleformat{\subsection}{\normalfont\bfseries\normalsize\color{SMADarkGray}}{}{0pt}{}
+
+% --------------------- MACROS GENERALES ------------------------------
+\newcommand{\TopSafeZone}{\vspace*{15mm}}
+
+\newcommand{\LogoSMALeft}{%
+  \includegraphics[height=18mm]{calendario/logo_sma.png}%
+}
+
+\newcommand{\LogoSMACentered}{%
+  \begin{center}
+    \includegraphics[height=22mm]{calendario/logo_sma.png}%
+  \end{center}
+}
+
+\newcommand{\PiePagina}{%
+  \vfill
+  \begin{center}
+    {\small\color{SMAMidGray} SMA -- Ingeniería y Gestión Online \,|\, www.sma.com.co \,|\, 2026}
+  \end{center}
+}
+
+\newcommand{\dia}[1]{\textcolor{SMADarkGray}{#1}}
+\newcommand{\festivo}[1]{\textcolor{SMAYellow}{\textbf{#1}}}
+
+\newcommand{\CalendarioCabecera}{%
+  \rowcolor{SMALightGray}
+  \textbf{L} & \textbf{M} & \textbf{X} & \textbf{J} & \textbf{V} & \textbf{S} & \textbf{D} \\
+}
+
+\newcommand{\NotasDelMes}{%
+  \vspace{6mm}
+  {\bfseries\color{SMADarkGray} Notas del mes}\\[3mm]
+  \color{SMAMidGray}
+  \rule{\textwidth}{0.3pt}\\[3mm]
+  \rule{\textwidth}{0.3pt}\\[3mm]
+  \rule{\textwidth}{0.3pt}\\[3mm]
+  \rule{\textwidth}{0.3pt}\\[3mm]
+
+...
+
+Let me reevaluate and take a different approach.
