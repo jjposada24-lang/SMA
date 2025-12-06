@@ -1,6 +1,12 @@
 'use client';
 
-export default function Footer() {
+import type { Language } from '@/lib/ui-types';
+
+type FooterProps = {
+  language: Language;
+};
+
+export default function Footer(_props: FooterProps) {
   return (
     <footer className="bg-[#0b0b0b] py-10 text-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 md:flex-row md:items-center md:justify-between">

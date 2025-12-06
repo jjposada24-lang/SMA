@@ -1,8 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import type { Language } from '@/lib/ui-types';
 
-export default function Contact() {
+type ContactProps = {
+  language: Language;
+};
+
+export default function Contact(_props: ContactProps) {
   return (
     <section id="contacto" className="section-padding bg-[#111] text-white">
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.9fr,1fr]">

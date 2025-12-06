@@ -1,24 +1,57 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import type { Language } from '@/lib/ui-types';
 
 type HeroProps = {
   onLoginOpen: () => void;
+  language: Language;
 };
 
-export default function Hero({ onLoginOpen }: HeroProps) {
+const heroCopy = {
+  es: {
+    eyebrow: 'SMA Ingeniería & Software',
+    title: 'Gestión online de flotas y maquinaria pesada',
+    description:
+      'SMA Ingeniería & Software nació en el terreno y hoy su equipo digitaliza el control de maquinaria, vehículos y equipos críticos. Reunimos mantenimiento, costos y operaciones en una plataforma que se adapta a cada empresa con más de 10 años de apoyo a proyectos mineros y de construcción LATAM.',
+    primaryCta: 'Solicitar Demo',
+    secondaryCta: 'Iniciar Sesión',
+    stats: [
+      { value: '+120', label: 'Operaciones auditadas' },
+      { value: '99.9%', label: 'Disponibilidad cloud' },
+      { value: '24/7', label: 'Soporte especializado' },
+    ],
+  },
+  en: {
+    eyebrow: 'SMA Engineering & Software',
+    title: 'Online management of fleets and heavy machinery',
+    description:
+      'SMA Engineering & Software was born in the field and today our team digitizes the control of machinery, vehicles and critical equipment. We bring maintenance, costs and operations together in a platform that adapts to each company, backed by more than 10 years supporting mining and construction projects across LATAM.',
+    primaryCta: 'Request demo',
+    secondaryCta: 'Sign in',
+    stats: [
+      { value: '+120', label: 'Audited operations' },
+      { value: '99.9%', label: 'Cloud availability' },
+      { value: '24/7', label: 'Specialized support' },
+    ],
+  },
+} as const;
+
+export default function Hero({ onLoginOpen, language }: HeroProps) {
+  const copy = heroCopy[language];
+
   return (
-    <section id="inicio" className="section-padding flex min-h-[90vh] flex-col justify-center pt-32">
+    <section id="inicio" className="section-padding flex min-h-[90vh] flex-col justify-center">
       <div className="mx-auto grid w-full max-w-6xl items-center gap-16 lg:grid-cols-[1fr,0.9fr]">
         <div className="space-y-8">
-          <p className="text-sm uppercase tracking-[0.6em] text-[#8f8f95]">SMA Ingeniería & Software</p>
+          <p className="text-sm uppercase tracking-[0.6em] text-[#8f8f95]">{copy.eyebrow}</p>
           <motion.h1
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             className="text-4xl font-semibold leading-tight text-[#1c1c1c] md:text-5xl"
           >
-            Gestión online de flotas y maquinaria pesada
+            {copy.title}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 32 }}
@@ -26,37 +59,29 @@ export default function Hero({ onLoginOpen }: HeroProps) {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-lg text-[#555555]"
           >
-            SMA Ingeniería & Software nació en el terreno y hoy su equipo digitaliza el control de maquinaria, vehículos
-            y equipos críticos. Reunimos mantenimiento, costos y operaciones en una plataforma que se adapta a cada
-            empresa con más de 10 años de apoyo a proyectos mineros y de construcción LATAM.
+            {copy.description}
           </motion.p>
           <div className="flex flex-wrap gap-4">
             <a
               href="#contacto"
               className="rounded-full bg-[#F7931E] px-8 py-3 font-semibold text-white shadow-[0_25px_80px_-40px_rgba(247,147,30,0.9)] transition hover:bg-[#e7830e]"
             >
-              Solicitar Demo
+              {copy.primaryCta}
             </a>
             <button
               onClick={onLoginOpen}
               className="rounded-full border border-[#d7d7d8] px-8 py-3 font-semibold text-[#1c1c1c] transition hover:border-[#F7931E] hover:text-[#F7931E]"
             >
-              Iniciar Sesión
+              {copy.secondaryCta}
             </button>
           </div>
           <div className="flex flex-wrap items-center gap-6 text-sm text-[#555555]">
-            <div>
-              <p className="text-3xl font-semibold text-[#1c1c1c]">+120</p>
-              Operaciones auditadas
-            </div>
-            <div>
-              <p className="text-3xl font-semibold text-[#1c1c1c]">99.9%</p>
-              Disponibilidad cloud
-            </div>
-            <div>
-              <p className="text-3xl font-semibold text-[#1c1c1c]">24/7</p>
-              Soporte especializado
-            </div>
+            {copy.stats.map((stat) => (
+              <div key={stat.label}>
+                <p className="text-3xl font-semibold text-[#1c1c1c]">{stat.value}</p>
+                {stat.label}
+              </div>
+            ))}
           </div>
         </div>
 

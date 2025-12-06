@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'SMA Ingeniería & Software',
   description: 'Gestión online de maquinaria pesada, mantenimiento y operaciones críticas.',
+  icons: {
+    icon: '/mini_logo.png',
+    shortcut: '/mini_logo.png',
+  },
 };
 
 export default function RootLayout({

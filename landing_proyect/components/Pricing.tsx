@@ -2,47 +2,86 @@
 
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
+import type { Language } from '@/lib/ui-types';
 
-const plans = [
-  {
-    name: 'Starter',
-    badge: 'PYMEs',
-    price: 'USD 590',
-    description: 'Ideal para talleres propios y operaciones con menos de 50 activos.',
-    benefits: ['Tableros en tiempo real', 'Soporte en horario laboral', 'Capacitación inicial'],
-  },
-  {
-    name: 'Growth',
-    badge: 'Más popular',
-    price: 'USD 990',
-    highlighted: true,
-    description: 'Para compañías con múltiples frentes, seguimiento de costos y SLA exigentes.',
-    benefits: [
-      'Automatización de órdenes',
-      'Integración con ERP/IoT',
-      'Soporte 24/7 + Customer Success',
-    ],
-  },
-  {
-    name: 'Enterprise',
-    badge: 'Corporativo',
-    price: 'A medida',
-    description: 'Incluye módulos adicionales, data lake y soporte dedicado en sitio.',
-    benefits: ['Consultoría especializada', 'Reportes personalizados', 'SLA a medida'],
-  },
-];
+const getPlans = (language: Language) =>
+  language === 'es'
+    ? [
+        {
+          name: 'Starter',
+          badge: 'PYMEs',
+          price: 'USD 590',
+          description: 'Ideal para talleres propios y operaciones con menos de 50 activos.',
+          benefits: ['Tableros en tiempo real', 'Soporte en horario laboral', 'Capacitación inicial'],
+        },
+        {
+          name: 'Growth',
+          badge: 'Más popular',
+          price: 'USD 990',
+          highlighted: true,
+          description: 'Para compañías con múltiples frentes, seguimiento de costos y SLA exigentes.',
+          benefits: [
+            'Automatización de órdenes',
+            'Integración con ERP/IoT',
+            'Soporte 24/7 + Customer Success',
+          ],
+        },
+        {
+          name: 'Enterprise',
+          badge: 'Corporativo',
+          price: 'A medida',
+          description: 'Incluye módulos adicionales, data lake y soporte dedicado en sitio.',
+          benefits: ['Consultoría especializada', 'Reportes personalizados', 'SLA a medida'],
+        },
+      ]
+    : [
+        {
+          name: 'Starter',
+          badge: 'SMBs',
+          price: 'USD 590',
+          description: 'Ideal for in‑house workshops and operations with fewer than 50 assets.',
+          benefits: ['Real‑time dashboards', 'Business hours support', 'Initial training'],
+        },
+        {
+          name: 'Growth',
+          badge: 'Most popular',
+          price: 'USD 990',
+          highlighted: true,
+          description: 'For companies with multiple sites, cost tracking and demanding SLAs.',
+          benefits: ['Automated work orders', 'ERP/IoT integrations', '24/7 support + Customer Success'],
+        },
+        {
+          name: 'Enterprise',
+          badge: 'Corporate',
+          price: 'Custom',
+          description: 'Includes extra modules, data lake and dedicated on‑site support.',
+          benefits: ['Specialized consulting', 'Custom reports', 'Tailored SLAs'],
+        },
+      ];
 
-export default function Pricing() {
+type PricingProps = {
+  language: Language;
+};
+
+export default function Pricing({ language }: PricingProps) {
   return (
     <section id="precios" className="section-padding bg-white">
       <div className="mx-auto max-w-4xl text-center">
-        <p className="text-xs uppercase tracking-[0.5em] text-[#8f8f95]">Planes</p>
-        <h2 className="mt-3 text-3xl font-semibold text-[#1c1c1c]">Implementa SMA según tu escala</h2>
-        <p className="mt-3 text-[#555555]">Modelos flexibles con onboarding guiado y soporte continuo.</p>
+        <p className="text-xs uppercase tracking-[0.5em] text-[#8f8f95]">
+          {language === 'es' ? 'Planes' : 'Plans'}
+        </p>
+        <h2 className="mt-3 text-3xl font-semibold text-[#1c1c1c]">
+          {language === 'es' ? 'Implementa SMA según tu escala' : 'Implement SMA according to your scale'}
+        </h2>
+        <p className="mt-3 text-[#555555]">
+          {language === 'es'
+            ? 'Modelos flexibles con onboarding guiado y soporte continuo.'
+            : 'Flexible models with guided onboarding and ongoing support.'}
+        </p>
       </div>
 
       <div className="mx-auto mt-12 grid max-w-6xl gap-6 lg:grid-cols-3">
-        {plans.map((plan, idx) => (
+        {getPlans(language).map((plan, idx) => (
           <motion.article
             key={plan.name}
             initial={{ opacity: 0, y: 24 }}
@@ -68,7 +107,9 @@ export default function Pricing() {
               {plan.description}
             </p>
             <p className="mt-6 text-4xl font-bold">{plan.price}</p>
-            <p className={`text-sm ${plan.highlighted ? 'text-white/70' : 'text-[#8f8f95]'}`}>mensual</p>
+            <p className={`text-sm ${plan.highlighted ? 'text-white/70' : 'text-[#8f8f95]'}`}>
+              {language === 'es' ? 'mensual' : 'per month'}
+            </p>
             <div className="mt-6 space-y-3 text-sm">
               {plan.benefits.map((benefit) => (
                 <p key={benefit} className="flex items-center gap-2">
@@ -87,7 +128,7 @@ export default function Pricing() {
                   : 'border border-[#1c1c1c] text-[#1c1c1c] hover:border-[#F7931E] hover:text-[#F7931E]'
               }`}
             >
-              Solicitar cotización
+              {language === 'es' ? 'Solicitar cotización' : 'Request quote'}
             </a>
           </motion.article>
         ))}

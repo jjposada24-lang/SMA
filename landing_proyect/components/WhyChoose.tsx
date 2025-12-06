@@ -2,28 +2,46 @@
 
 import { motion } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
+import type { Language } from '@/lib/ui-types';
 
-const bullets = [
-  'Implementaciones ágiles con especialistas en maquinaria y HSE.',
-  'Integración nativa con ERP, IoT y tableros BI líderes.',
-  'Cumplimiento normativo ISO 55000, HSE y auditorías regulatorias.',
-  'Soporte premium 24/7 en español con presencia en campo.',
-];
+const getBullets = (language: Language) =>
+  language === 'es'
+    ? [
+        'Implementaciones ágiles con especialistas en maquinaria y HSE.',
+        'Integración nativa con ERP, IoT y tableros BI líderes.',
+        'Cumplimiento normativo ISO 55000, HSE y auditorías regulatorias.',
+        'Soporte premium 24/7 en español con presencia en campo.',
+      ]
+    : [
+        'Agile rollouts led by machinery and HSE specialists.',
+        'Native integration with leading ERP, IoT and BI platforms.',
+        'Compliance with ISO 55000, HSE and regulatory audits.',
+        'Premium 24/7 support in Spanish with on‑site presence.',
+      ];
 
-export default function WhyChoose() {
+type WhyChooseProps = {
+  language: Language;
+};
+
+export default function WhyChoose(_props: WhyChooseProps) {
   return (
     <section id="porque-sma" className="section-padding bg-[#f4f5f7]">
       <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2">
         <div>
-          <p className="text-xs uppercase tracking-[0.5em] text-[#8f8f95]">Por qué SMA</p>
-          <h2 className="mt-3 text-3xl font-semibold text-[#1c1c1c]">Expertos en operaciones críticas</h2>
+          <p className="text-xs uppercase tracking-[0.5em] text-[#8f8f95]">
+            {_props.language === 'es' ? 'Por qué SMA' : 'Why SMA'}
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold text-[#1c1c1c]">
+            {_props.language === 'es' ? 'Expertos en operaciones críticas' : 'Experts in critical operations'}
+          </h2>
           <p className="mt-4 text-[#555555]">
-            Diseñamos la plataforma junto a jefes de mantenimiento y operación de las canteras más exigentes de Colombia.
-            Eso significa procesos reales, alertas accionables y KPIs que impactan el EBITDA.
+            {_props.language === 'es'
+              ? 'Diseñamos la plataforma junto a jefes de mantenimiento y operación de las canteras más exigentes de Colombia. Eso significa procesos reales, alertas accionables y KPIs que impactan el EBITDA.'
+              : 'We co‑designed the platform with maintenance and operations leaders from the most demanding quarries in Colombia. That means real‑world processes, actionable alerts and KPIs that impact EBITDA.'}
           </p>
         </div>
         <div className="space-y-5">
-          {bullets.map((item, idx) => (
+          {getBullets(_props.language).map((item, idx) => (
             <motion.div
               key={item}
               initial={{ opacity: 0, x: -32 }}

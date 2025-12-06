@@ -1,37 +1,69 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import type { Language } from '@/lib/ui-types';
 
-const clients = [
-  {
-    name: 'Cantera Norte',
-    caption: 'Producción agregados',
-    result: '+18% disponibilidad',
-  },
-  {
-    name: 'Operación Andes',
-    caption: 'Minería subterránea',
-    result: '-12% costos mantenimiento',
-  },
-  {
-    name: 'Acerías Caribe',
-    caption: 'Siderurgia e infraestructura',
-    result: 'KPIs en tiempo real',
-  },
-];
+const getClients = (language: Language) =>
+  language === 'es'
+    ? [
+        {
+          name: 'Cantera Norte',
+          caption: 'Producción agregados',
+          result: '+18% disponibilidad',
+        },
+        {
+          name: 'Operación Andes',
+          caption: 'Minería subterránea',
+          result: '-12% costos mantenimiento',
+        },
+        {
+          name: 'Acerías Caribe',
+          caption: 'Siderurgia e infraestructura',
+          result: 'KPIs en tiempo real',
+        },
+      ]
+    : [
+        {
+          name: 'Cantera Norte',
+          caption: 'Aggregates production',
+          result: '+18% availability',
+        },
+        {
+          name: 'Operación Andes',
+          caption: 'Underground mining',
+          result: '-12% maintenance costs',
+        },
+        {
+          name: 'Acerías Caribe',
+          caption: 'Steel and infrastructure',
+          result: 'Real‑time KPIs',
+        },
+      ];
 
-export default function Clients() {
+type ClientsProps = {
+  language: Language;
+};
+
+export default function Clients({ language }: ClientsProps) {
   return (
     <section id="clientes" className="section-padding bg-[#f7f7f9]">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
-          <p className="text-xs uppercase tracking-[0.5em] text-[#8f8f95]">Clientes</p>
-          <h2 className="mt-3 text-3xl font-semibold text-[#1c1c1c]">Operaciones que confían en SMA</h2>
-          <p className="mt-3 text-[#555555]">Implementaciones reales en minería, construcción e industria pesada.</p>
+          <p className="text-xs uppercase tracking-[0.5em] text-[#8f8f95]">
+            {language === 'es' ? 'Clientes' : 'Customers'}
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold text-[#1c1c1c]">
+            {language === 'es' ? 'Operaciones que confían en SMA' : 'Operations that trust SMA'}
+          </h2>
+          <p className="mt-3 text-[#555555]">
+            {language === 'es'
+              ? 'Implementaciones reales en minería, construcción e industria pesada.'
+              : 'Real implementations in mining, construction and heavy industry.'}
+          </p>
         </div>
 
         <div className="mx-auto mt-12 grid gap-6 md:grid-cols-3">
-          {clients.map((client, idx) => (
+          {getClients(language).map((client, idx) => (
             <motion.article
               key={client.name}
               initial={{ opacity: 0, y: 24 }}

@@ -5,20 +5,22 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import type { Language } from '@/lib/ui-types';
 
-const navItems = [
-  { label: 'Inicio', href: '#inicio' },
-  { label: 'Características', href: '#caracteristicas' },
-  { label: 'Clientes', href: '#clientes' },
-  { label: 'Precios', href: '#precios' },
-  { label: 'Contacto', href: '#contacto' },
+const getNavItems = (language: Language) => [
+  { label: language === 'es' ? 'Inicio' : 'Home', href: '#inicio' },
+  { label: language === 'es' ? 'Características' : 'Features', href: '#caracteristicas' },
+  { label: language === 'es' ? 'Clientes' : 'Clients', href: '#clientes' },
+  { label: language === 'es' ? 'Precios' : 'Pricing', href: '#precios' },
+  { label: language === 'es' ? 'Contacto' : 'Contact', href: '#contacto' },
 ];
 
 type HeaderProps = {
   onLoginOpen: () => void;
+  language: Language;
 };
 
-export default function Header({ onLoginOpen }: HeaderProps) {
+export default function Header({ onLoginOpen, language }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -47,11 +49,18 @@ export default function Header({ onLoginOpen }: HeaderProps) {
 
           <nav className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
             <Link href="#inicio" className="flex items-center gap-3">
-              <Image src="/logo-sma-color-transparente.png" alt="Logo SMA Ingeniería" width={194} height={48} priority />
+              <Image
+                src="/logo-sma-color-transparente1.png"
+                alt="Logo SMA Ingeniería & Software"
+                width={240}
+                height={60}
+                priority
+                className="h-8 w-auto sm:h-10 lg:h-12"
+              />
             </Link>
 
             <div className="hidden items-center gap-6 md:flex">
-              {navItems.map((item) => (
+              {getNavItems(language).map((item) => (
                 <a
                   key={item.href}
                   href={item.href}
@@ -64,19 +73,19 @@ export default function Header({ onLoginOpen }: HeaderProps) {
                 href="#nosotros"
                 className="rounded-full border border-white/30 px-5 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10"
               >
-                Quién somos
+                {language === 'es' ? 'Quién somos' : 'About us'}
               </a>
               <button
                 onClick={() => (window.location.href = '#contacto')}
                 className="rounded-full border border-white/30 px-5 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10"
               >
-                Solicitar Demo
+                {language === 'es' ? 'Solicitar Demo' : 'Request Demo'}
               </button>
               <button
                 onClick={onLoginOpen}
                 className="rounded-full bg-[#F7931E] px-5 py-2 text-sm font-semibold text-[#1f1203] shadow-[0_8px_25px_rgba(247,147,30,0.45)] transition hover:bg-[#e7830e]"
               >
-                Iniciar Sesión
+                {language === 'es' ? 'Iniciar Sesión' : 'Sign in'}
               </button>
             </div>
 
@@ -113,7 +122,7 @@ export default function Header({ onLoginOpen }: HeaderProps) {
                 </button>
               </div>
               <div className="mt-8 flex flex-col gap-4">
-                {navItems.map((item) => (
+                {getNavItems(language).map((item) => (
                   <a
                     key={item.href}
                     href={item.href}
@@ -128,7 +137,7 @@ export default function Header({ onLoginOpen }: HeaderProps) {
                   onClick={() => setOpen(false)}
                   className="rounded-full border border-[#e5e5e5] px-4 py-3 text-center text-[#111]"
                 >
-                  Quién somos
+                  {language === 'es' ? 'Quién somos' : 'About us'}
                 </a>
                 <button
                   onClick={() => {
@@ -137,7 +146,7 @@ export default function Header({ onLoginOpen }: HeaderProps) {
                   }}
                   className="rounded-full border border-[#111] px-4 py-3 text-[#111]"
                 >
-                  Solicitar Demo
+                  {language === 'es' ? 'Solicitar Demo' : 'Request Demo'}
                 </button>
                 <button
                   onClick={() => {
@@ -146,7 +155,7 @@ export default function Header({ onLoginOpen }: HeaderProps) {
                   }}
                   className="rounded-full bg-[#F7931E] px-4 py-3 text-[#1f1203]"
                 >
-                  Iniciar Sesión
+                  {language === 'es' ? 'Iniciar Sesión' : 'Sign in'}
                 </button>
               </div>
             </motion.div>
