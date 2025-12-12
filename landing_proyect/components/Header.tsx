@@ -16,11 +16,10 @@ const getNavItems = (language: Language) => [
 ];
 
 type HeaderProps = {
-  onLoginOpen: () => void;
   language: Language;
 };
 
-export default function Header({ onLoginOpen, language }: HeaderProps) {
+export default function Header({ language }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -81,12 +80,12 @@ export default function Header({ onLoginOpen, language }: HeaderProps) {
               >
                 {language === 'es' ? 'Solicitar Demo' : 'Request Demo'}
               </button>
-              <button
-                onClick={onLoginOpen}
+              <Link
+                href="/login"
                 className="rounded-full bg-[#F7931E] px-5 py-2 text-sm font-semibold text-[#1f1203] shadow-[0_8px_25px_rgba(247,147,30,0.45)] transition hover:bg-[#e7830e]"
               >
                 {language === 'es' ? 'Iniciar Sesión' : 'Sign in'}
-              </button>
+              </Link>
             </div>
 
             <button
@@ -148,15 +147,13 @@ export default function Header({ onLoginOpen, language }: HeaderProps) {
                 >
                   {language === 'es' ? 'Solicitar Demo' : 'Request Demo'}
                 </button>
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    onLoginOpen();
-                  }}
-                  className="rounded-full bg-[#F7931E] px-4 py-3 text-[#1f1203]"
+                <Link
+                  href="/login"
+                  className="rounded-full bg-[#F7931E] px-4 py-3 text-center text-[#1f1203]"
+                  onClick={() => setOpen(false)}
                 >
                   {language === 'es' ? 'Iniciar Sesión' : 'Sign in'}
-                </button>
+                </Link>
               </div>
             </motion.div>
           </motion.div>

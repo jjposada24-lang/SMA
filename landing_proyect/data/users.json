@@ -1,0 +1,17 @@
+[
+  {
+    "username": "admin",
+    "passwordHash": "023daf48639bdd0e9146d3f2f5892586f113590f785d5df6adbbcfa7c7f1836a",
+    "role": "admin"
+  },
+  {
+    "username": "cliente_demo",
+    "passwordHash": "023daf48639bdd0e9146d3f2f5892586f113590f785d5df6adbbcfa7c7f1836a",
+    "role": "customer"
+  },
+  {
+    "username": "cliente_demo1",
+    "passwordHash": "023daf48639bdd0e9146d3f2f5892586f113590f785d5df6adbbcfa7c7f1836a",
+    "role": "customer"
+  }
+]

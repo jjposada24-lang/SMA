@@ -11,12 +11,10 @@ import WhyChoose from '@/components/WhyChoose';
 import Pricing from '@/components/Pricing';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
-import LoginModal from '@/components/LoginModal';
 import FloatingControls from '@/components/FloatingControls';
 import type { Language, ThemeMode } from '@/lib/ui-types';
 
 export default function HomePage() {
-  const [loginOpen, setLoginOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>('light');
   const [language, setLanguage] = useState<Language>('es');
 
@@ -58,9 +56,9 @@ export default function HomePage() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       <BackgroundAnimation />
-      <Header onLoginOpen={() => setLoginOpen(true)} language={language} />
+      <Header language={language} />
       <main className="relative z-10 pt-20 md:pt-28 lg:pt-32">
-        <Hero onLoginOpen={() => setLoginOpen(true)} language={language} />
+        <Hero language={language} />
         <About language={language} />
         <Features language={language} />
         <Clients language={language} />
@@ -69,7 +67,6 @@ export default function HomePage() {
         <Contact language={language} />
       </main>
       <Footer language={language} />
-      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} language={language} />
       <FloatingControls
         theme={theme}
         onToggleTheme={toggleTheme}

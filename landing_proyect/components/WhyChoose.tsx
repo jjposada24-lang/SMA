@@ -23,25 +23,25 @@ type WhyChooseProps = {
   language: Language;
 };
 
-export default function WhyChoose(_props: WhyChooseProps) {
+export default function WhyChoose({ language }: WhyChooseProps) {
   return (
     <section id="porque-sma" className="section-padding bg-[#f4f5f7]">
       <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2">
         <div>
           <p className="text-xs uppercase tracking-[0.5em] text-[#8f8f95]">
-            {_props.language === 'es' ? 'Por qué SMA' : 'Why SMA'}
+            {language === 'es' ? 'Por qué SMA' : 'Why SMA'}
           </p>
           <h2 className="mt-3 text-3xl font-semibold text-[#1c1c1c]">
-            {_props.language === 'es' ? 'Expertos en operaciones críticas' : 'Experts in critical operations'}
+            {language === 'es' ? 'Expertos en operaciones críticas' : 'Experts in critical operations'}
           </h2>
           <p className="mt-4 text-[#555555]">
-            {_props.language === 'es'
+            {language === 'es'
               ? 'Diseñamos la plataforma junto a jefes de mantenimiento y operación de las canteras más exigentes de Colombia. Eso significa procesos reales, alertas accionables y KPIs que impactan el EBITDA.'
               : 'We co‑designed the platform with maintenance and operations leaders from the most demanding quarries in Colombia. That means real‑world processes, actionable alerts and KPIs that impact EBITDA.'}
           </p>
         </div>
         <div className="space-y-5">
-          {getBullets(_props.language).map((item, idx) => (
+          {getBullets(language).map((item, idx) => (
             <motion.div
               key={item}
               initial={{ opacity: 0, x: -32 }}

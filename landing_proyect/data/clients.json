@@ -1,0 +1,26 @@
+[
+  {
+    "username": "cliente_demo",
+    "modules": {
+      "usuarios": true,
+      "grabaciones": false,
+      "movimientos": true
+    }
+  },
+  {
+    "username": "cliente_demo1",
+    "modules": {
+      "usuarios": true,
+      "grabaciones": true,
+      "movimientos": false
+    }
+  },
+  {
+    "username": "1002",
+    "modules": {
+      "usuarios": true,
+      "grabaciones": true,
+      "movimientos": false
+    }
+  }
+]

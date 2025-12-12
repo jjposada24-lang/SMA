@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import type { Language } from '@/lib/ui-types';
 
 type HeroProps = {
-  onLoginOpen: () => void;
   language: Language;
 };
 
@@ -37,7 +36,7 @@ const heroCopy = {
   },
 } as const;
 
-export default function Hero({ onLoginOpen, language }: HeroProps) {
+export default function Hero({ language }: HeroProps) {
   const copy = heroCopy[language];
 
   return (
@@ -68,12 +67,12 @@ export default function Hero({ onLoginOpen, language }: HeroProps) {
             >
               {copy.primaryCta}
             </a>
-            <button
-              onClick={onLoginOpen}
+            <a
+              href="/login"
               className="rounded-full border border-[#d7d7d8] px-8 py-3 font-semibold text-[#1c1c1c] transition hover:border-[#F7931E] hover:text-[#F7931E]"
             >
               {copy.secondaryCta}
-            </button>
+            </a>
           </div>
           <div className="flex flex-wrap items-center gap-6 text-sm text-[#555555]">
             {copy.stats.map((stat) => (
