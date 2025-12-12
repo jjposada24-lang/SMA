@@ -5,10 +5,25 @@ import { findUser, deleteUser } from '@/lib/auth/users';
 
 export async function GET() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') {
+  if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
-  return NextResponse.json({ clients: await getClients() });
+
+  // Admin root: devuelve todos
+  if (session.role === 'admin' && session.roleId === 1) {
+    return NextResponse.json({ clients: await getClients() });
+  }
+
+  // Admin customer (rol 2): devuelve los clientes que coinciden con su userId o username
+  if (session.roleId === 2) {
+    const clients = await getClients();
+    const matches = clients.filter(
+      (c) => c.username === String(session.userId) || c.username === session.username,
+    );
+    return NextResponse.json({ clients: matches });
+  }
+
+  return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 }
 
 export async function POST(request: Request) {

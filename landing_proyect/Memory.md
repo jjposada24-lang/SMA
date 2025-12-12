@@ -48,7 +48,22 @@
 - Aún en `data/clients.json` (pendiente migrar a Supabase). Inicial `cliente_demo` con `{ usuarios: true, grabaciones: false, movimientos: true }`.
 - Módulos: `usuarios`, `grabaciones`, `movimientos`. Funciones: `getClients()`, `toggleModule()`, `addClient()`.
 - API admin: `GET/POST /api/admin/clients`. UI: `AdminClientsManager` muestra listado, búsqueda y toggles; incluye eliminar cliente/usuario; botón de logout.
+- Módulo “usuarios” se activa por defecto al crear cliente. Para rol 2, los módulos activos se consultan desde `/api/admin/clients` (que ahora devuelve el cliente del propio userId/username) para pintar el sidebar. Root (rol 1) sigue viendo todos.
 
 ## Creación de usuarios (admin)
 - Persistentes en Supabase (`users`). API `POST /api/admin/users` acepta `{ nombre, cedula, mail, password, roleId }`. Reglas: admin_root (1) crea admin_customer (2); admin_customer (2) crea sub_customer (3). `parent_id` = `user_id` del creador. Si se crea admin_customer, se agrega cliente en JSON con su `user_id` (para módulos) hasta migrar módulos a BD.
+
+## Módulo Grabaciones → Tipos de máquina (rol 2)
+- BD: tabla `machine_types` (`id` bigserial, `owner_id` FK a `users.user_id`, `machine_id` smallint NOT NULL, `name` text, `deleted` timestamptz, `created_at`). Índice único `(owner_id, machine_id)` ignorando deleted.
+- Borrado lógico (`deleted` con timestamp). `machine_id` validado como entero 1..32767; `name` se almacena en mayúsculas.
+- API `/api/machine-types` (solo rol 2):  
+  - `GET` lista del owner.  
+  - `POST {name, machineId}` crea.  
+  - `PUT {id, name, machineId}` edita.  
+  - `DELETE {id}` soft delete.
+- Front: en `AdminClientsManager`, el bloque “Grabaciones” muestra opción “Tipos de máquina” y carga formulario/lista en panel central. Campo único numérico para ID de máquina; listado muestra Machine ID y BD ID; edición/eliminación disponibles.
+
+## UI/UX de módulos y sidebar
+- Sidebar: “Usuarios” con subopciones “Crear usuario” y “Mis Usuarios”; “Grabaciones” con “Tipos de máquina”; “Movimientos” placeholder.
+- Para rol 2, se muestran módulos activos (usuarios/grabaciones/movimientos) según cliente asociado. Para rol 1, vista de clientes y módulos completa.
 

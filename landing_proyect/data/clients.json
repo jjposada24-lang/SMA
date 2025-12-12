@@ -3,7 +3,7 @@
     "username": "cliente_demo",
     "modules": {
       "usuarios": true,
-      "grabaciones": false,
+      "grabaciones": true,
       "movimientos": true
     }
   },
@@ -12,7 +12,7 @@
     "modules": {
       "usuarios": true,
       "grabaciones": true,
-      "movimientos": false
+      "movimientos": true
     }
   },
   {
@@ -20,7 +20,7 @@
     "modules": {
       "usuarios": true,
       "grabaciones": true,
-      "movimientos": false
+      "movimientos": true
     }
   }
 ]

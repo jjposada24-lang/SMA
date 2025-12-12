@@ -12,6 +12,9 @@ export default async function AdminDashboard() {
     redirect('/login');
   }
 
+  const clientModules =
+    clients.find((c) => c.username === String(session.userId))?.modules ?? null;
+
   return (
     <main className="min-h-screen bg-[#0b0c10] text-white px-6 py-12">
       <div className="mx-auto max-w-5xl">
@@ -28,6 +31,7 @@ export default async function AdminDashboard() {
           initialClients={clients}
           sessionRoleId={session.roleId}
           sessionUserId={session.userId}
+          clientModules={clientModules}
         />
       </div>
     </main>

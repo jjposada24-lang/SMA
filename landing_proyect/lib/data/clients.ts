@@ -39,7 +39,7 @@ export async function addClient(username: string) {
   const client: ClientRecord = {
     username,
     modules: {
-      usuarios: false,
+      usuarios: true, // disponible por defecto
       grabaciones: false,
       movimientos: false,
     },
