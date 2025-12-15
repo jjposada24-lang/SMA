@@ -1,16 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { UserPlus, Users, Trash2, Search, CheckSquare, Square, Pencil, UserCog, X } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { UserPlus, Users, Trash2, Search, CheckSquare, Square, Pencil, UserCog, X, Plus, Tractor, Upload, FileText } from 'lucide-react';
 import type { MachineTypeRecord } from '@/lib/data/machine-types';
 import type { ClientRecord, ModuleKey } from '@/lib/data/clients';
 import type { RoleId, PublicUser } from '@/lib/auth/users';
+import type { MachineRecord, CreateMachineInput, MachineEngine, MachineFile } from '@/lib/data/machines';
+import { createClient } from '@/lib/supabase-browser';
 
 const MODULE_LABELS: Record<ModuleKey, string> = {
   usuarios: 'Usuarios',
   grabaciones: 'Grabaciones',
   movimientos: 'Movimientos',
 };
+
+// Tipo extendido para incluir datos de Supabase
+type ExtendedClient = ClientRecord & Partial<PublicUser>;
 
 type Props = {
   initialClients: ClientRecord[];
@@ -19,7 +24,7 @@ type Props = {
   clientModules?: Record<ModuleKey, boolean> | null;
 };
 
-type Tab = 'create' | 'list' | 'my-users' | 'machine-types';
+type Tab = 'create' | 'list' | 'my-users' | 'machine-types' | 'machines';
 
 export default function AdminClientsManager({
   initialClients,
@@ -28,7 +33,8 @@ export default function AdminClientsManager({
   clientModules,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('create');
-  const [clients, setClients] = useState<ClientRecord[]>(initialClients);
+  // Usamos ExtendedClient[] en lugar de ClientRecord[]
+  const [clients, setClients] = useState<ExtendedClient[]>(initialClients);
   const [myUsers, setMyUsers] = useState<PublicUser[]>([]);
   
   // States generales
@@ -70,7 +76,48 @@ export default function AdminClientsManager({
     clientModules ?? null,
   );
 
-  // ... (Funciones handleToggle, handleCreate, etc.)
+  // MACHINES STATE
+  const [machines, setMachines] = useState<MachineRecord[]>([]);
+  const [machinesLoading, setMachinesLoading] = useState(false);
+  const [machineError, setMachineError] = useState<string | null>(null);
+  const [isEditingMachine, setIsEditingMachine] = useState(false); // Vista: Lista vs Form
+  
+  // Formulario Máquina
+  const defaultMachineForm: Partial<CreateMachineInput> = {
+    name: '',
+    machine_type_id: undefined,
+    brand: '',
+    model: '',
+    year: '',
+    serial_number: '',
+    fuel_type: 'DIESEL',
+    control_type: 'Horometro',
+    maintenance_interval: '',
+    observations: '',
+    create_cost_center: false,
+    is_active: true,
+    engines: [],
+    files: []
+  };
+  const [machineForm, setMachineForm] = useState<Partial<CreateMachineInput>>(defaultMachineForm);
+  const [machineIdToEdit, setMachineIdToEdit] = useState<number | null>(null);
+  
+  // Formulario Motor (dentro de Máquina)
+  const defaultEngineForm: MachineEngine = {
+    brand: '',
+    serial_number: '',
+    type: '',
+    power: '',
+    location: '',
+    description: ''
+  };
+  const [engineForm, setEngineForm] = useState<MachineEngine>(defaultEngineForm);
+  const [showEngineForm, setShowEngineForm] = useState(false);
+
+  // FILES STATE
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleToggle = async (username: string, module: ModuleKey, enabled: boolean) => {
     setLoadingKey(`${username}-${module}`);
     setError(null);
@@ -111,12 +158,14 @@ export default function AdminClientsManager({
         setFormError(json?.error ?? 'No se pudo crear el usuario');
         return;
       }
-      if (json.client) {
-        setClients((prev) => [...prev, json.client as ClientRecord]);
+      // Si el API devolvió un cliente (para lista global), lo agregamos
+      if (json.client || json.user) {
+         // Re-fetch para tener la data completa (combinada)
+         if (sessionRoleId === 1) await refreshClients();
       }
+      
       // Si es customer y creó un usuario, refrescar su lista
       if (sessionRoleId === 2 && json.user) {
-        // Podríamos agregar a myUsers manualmente o refrescar
         refreshMyUsers();
       }
 
@@ -144,7 +193,7 @@ export default function AdminClientsManager({
         setError(json?.error ?? 'No se pudo obtener clientes');
         return;
       }
-      setClients(json.clients as ClientRecord[]);
+      setClients(json.clients as ExtendedClient[]);
     } catch (err) {
       console.error(err);
       setError('Error de red al obtener clientes');
@@ -160,7 +209,6 @@ export default function AdminClientsManager({
       const res = await fetch('/api/admin/users'); // GET llama a hijos por defecto para rol 2
       const json = await res.json();
       if (!res.ok) {
-        // Si es admin (rol 1) podría dar 401/403 si el endpoint no soporta, pero lo manejamos
         if (sessionRoleId === 2) setError(json?.error ?? 'No se pudieron cargar usuarios');
         return;
       }
@@ -174,7 +222,7 @@ export default function AdminClientsManager({
   };
 
   const handleDeleteClient = async (username: string) => {
-    const confirmed = window.confirm(`¿Eliminar cliente ${username}? Esta acción es permanente.`);
+    const confirmed = window.confirm(`¿Eliminar cliente ${username}? Esta acción es permanente y eliminará al usuario de la base de datos.`);
     if (!confirmed) return;
     setDeleteLoading(username);
     setError(null);
@@ -198,7 +246,7 @@ export default function AdminClientsManager({
     }
   };
 
-  // Machine Types (grabaciones module)
+  // Machine Types logic
   const fetchMachineTypes = async () => {
     setMtLoading(true);
     setMtError(null);
@@ -324,6 +372,188 @@ export default function AdminClientsManager({
     }
   };
 
+  // MACHINES FUNCTIONS
+  const fetchMachines = async () => {
+    setMachinesLoading(true);
+    setMachineError(null);
+    try {
+      const res = await fetch('/api/machines');
+      const json = await res.json();
+      if (!res.ok) {
+        setMachineError(json?.error ?? 'No se pudieron cargar las máquinas');
+        return;
+      }
+      setMachines(json.items as MachineRecord[]);
+    } catch (err) {
+      console.error(err);
+      setMachineError('Error de red al cargar máquinas');
+    } finally {
+      setMachinesLoading(false);
+    }
+  };
+
+  const handleSaveMachine = async () => {
+    if (!machineForm.name?.trim()) {
+      setMachineError('El campo Equipo (Nombre) es obligatorio.');
+      return;
+    }
+    setMachinesLoading(true);
+    setMachineError(null);
+    try {
+      const isUpdate = !!machineIdToEdit;
+      const url = '/api/machines';
+      const method = isUpdate ? 'PUT' : 'POST';
+      const body = { ...machineForm, id: machineIdToEdit };
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setMachineError(json?.error ?? 'No se pudo guardar la máquina');
+        setMachinesLoading(false);
+        return;
+      }
+      
+      await fetchMachines();
+      setIsEditingMachine(false);
+      setMachineForm(defaultMachineForm);
+      setMachineIdToEdit(null);
+    } catch (err) {
+      console.error(err);
+      setMachineError('Error de red al guardar máquina');
+      setMachinesLoading(false);
+    }
+  };
+
+  const handleDeleteMachine = async (id: number) => {
+    if (!window.confirm('¿Eliminar esta máquina?')) return;
+    setMachinesLoading(true);
+    try {
+      const res = await fetch('/api/machines', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error();
+      await fetchMachines();
+    } catch (err) {
+      setMachineError('No se pudo eliminar la máquina');
+      setMachinesLoading(false);
+    }
+  };
+
+  const openCreateMachine = () => {
+    setMachineForm(defaultMachineForm);
+    setMachineIdToEdit(null);
+    setIsEditingMachine(true);
+    setMachineError(null);
+  };
+
+  const openEditMachine = (m: MachineRecord) => {
+    setMachineForm({
+      name: m.name,
+      machine_type_id: m.machine_type_id ?? undefined,
+      brand: m.brand,
+      model: m.model,
+      year: m.year,
+      serial_number: m.serial_number,
+      fuel_type: m.fuel_type,
+      control_type: m.control_type,
+      maintenance_interval: m.maintenance_interval,
+      observations: m.observations,
+      create_cost_center: m.create_cost_center,
+      is_active: m.is_active,
+      engines: m.engines ?? [],
+      files: m.files ?? []
+    });
+    setMachineIdToEdit(m.id);
+    setIsEditingMachine(true);
+    setMachineError(null);
+  };
+
+  const addEngine = () => {
+    if (!engineForm.brand && !engineForm.type) return;
+    setMachineForm(prev => ({
+      ...prev,
+      engines: [...(prev.engines || []), { ...engineForm, id: Date.now() }] // temp id for key
+    }));
+    setEngineForm(defaultEngineForm);
+    setShowEngineForm(false);
+  };
+
+  const removeEngine = (idx: number) => {
+    setMachineForm(prev => ({
+      ...prev,
+      engines: prev.engines?.filter((_, i) => i !== idx)
+    }));
+  };
+
+  // Files Handlers
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    setUploadingFile(true);
+    setMachineError(null);
+    
+    const client = createClient();
+    const newFiles: MachineFile[] = [];
+
+    try {
+      for (const file of Array.from(e.target.files)) {
+        // Sanitize name
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${sessionUserId}/${fileName}`; // Estructura: userId/filename
+
+        const { error: uploadError } = await client.storage
+          .from('machine-files')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          setMachineError(`Error al subir archivo ${file.name}`);
+          continue;
+        }
+
+        const { data: { publicUrl } } = client.storage
+          .from('machine-files')
+          .getPublicUrl(filePath);
+
+        newFiles.push({
+          name: file.name,
+          url: publicUrl,
+          type: file.type || 'unknown'
+        });
+      }
+
+      if (newFiles.length > 0) {
+        setMachineForm(prev => ({
+          ...prev,
+          files: [...(prev.files || []), ...newFiles]
+        }));
+      }
+    } catch (err) {
+       console.error(err);
+       setMachineError('Error inesperado al subir archivos');
+    } finally {
+       setUploadingFile(false);
+       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (idx: number) => {
+    // Nota: Solo lo quitamos de la lista visual y del objeto a guardar. 
+    // No lo borramos del bucket aquí para simplificar (podría borrarse al guardar o en cronjob)
+    setMachineForm(prev => ({
+      ...prev,
+      files: prev.files?.filter((_, i) => i !== idx)
+    }));
+  };
+
+  // User Actions
   const handleDeleteUser = async (userId: number) => {
     const confirmed = window.confirm('¿Estás seguro de eliminar este usuario?');
     if (!confirmed) return;
@@ -373,7 +603,7 @@ export default function AdminClientsManager({
           nombre: editNombre,
           cedula: editCedula,
           email: editMail,
-          password: editPassword || undefined, // Solo enviar si cambió
+          password: editPassword || undefined,
         }),
       });
       const json = await res.json();
@@ -382,7 +612,6 @@ export default function AdminClientsManager({
         return;
       }
       
-      // Actualizar lista local
       setMyUsers((prev) => prev.map((u) => (u.userId === editingUser.userId ? { ...u, ...json.user } : u)));
       setEditingUser(null);
     } catch (err) {
@@ -393,7 +622,6 @@ export default function AdminClientsManager({
     }
   };
 
-  // Módulo "usuarios" activo (para rol 2)
   const canUseUsuarios =
     sessionRoleId === 1 ? true : customerModules?.usuarios !== false;
   const modulesState: Record<ModuleKey, boolean> = {
@@ -410,7 +638,6 @@ export default function AdminClientsManager({
         await refreshClients();
       } else if (sessionRoleId === 2) {
         refreshMyUsers();
-        // obtener módulos del propio cliente
         try {
           const res = await fetch('/api/admin/clients');
           const json = await res.json();
@@ -422,6 +649,7 @@ export default function AdminClientsManager({
               setCustomerModules(selfClient.modules);
               if (selfClient.modules.grabaciones) {
                 fetchMachineTypes();
+                // Si ya estamos en grabaciones, podríamos cargar máquinas, pero mejor esperar a click
               }
             }
           }
@@ -433,6 +661,13 @@ export default function AdminClientsManager({
     void loadForRole();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionRoleId]);
+
+  // Cargar lista de máquinas al entrar a la tab
+  useEffect(() => {
+    if (activeTab === 'machines' && sessionRoleId === 2) {
+      fetchMachines();
+    }
+  }, [activeTab, sessionRoleId]);
 
   useEffect(() => {
     if (sessionRoleId === 2 && modulesState.grabaciones) {
@@ -513,7 +748,7 @@ export default function AdminClientsManager({
           </div>
         )}
 
-        {/* Módulo: Grabaciones -> sub-funcionalidad Tipos de máquina (sidebar) */}
+        {/* Módulo: Grabaciones */}
         {sessionRoleId === 2 && modulesState.grabaciones && (
           <div className="rounded-xl border border-white/10 bg-white/5">
             <button
@@ -527,6 +762,17 @@ export default function AdminClientsManager({
             </button>
             {modulesOpen.grabaciones && (
               <div className="flex flex-col gap-1 px-2 pb-3">
+                <button
+                  onClick={() => setActiveTab('machines')}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                    activeTab === 'machines'
+                      ? 'bg-[#F7931E] text-black font-semibold shadow-lg'
+                      : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <Tractor size={18} />
+                  Maquinas
+                </button>
                 <button
                   onClick={() => setActiveTab('machine-types' as Tab)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
@@ -542,7 +788,7 @@ export default function AdminClientsManager({
           </div>
         )}
 
-        {/* Placeholder para movimientos si está activo (sin funcionalidad aún) */}
+        {/* Placeholder para movimientos */}
         {sessionRoleId === 2 && modulesState.movimientos && (
           <div className="rounded-xl border border-white/10 bg-white/5">
             <button
@@ -582,7 +828,8 @@ export default function AdminClientsManager({
         {/* TAB: CREAR USUARIO */}
         {activeTab === 'create' && canUseUsuarios && (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl animate-in fade-in zoom-in duration-300">
-            <h2 className="text-xl font-semibold mb-1 text-white">Crear usuario / cliente</h2>
+            {/* ... Contenido igual ... */}
+             <h2 className="text-xl font-semibold mb-1 text-white">Crear usuario / cliente</h2>
             <p className="text-xs text-white/50 mb-6">
               Registra un nuevo usuario en el sistema. (Tu ID: {sessionUserId})
             </p>
@@ -666,7 +913,8 @@ export default function AdminClientsManager({
         {/* TAB: LISTA CLIENTES (ADMIN ROOT) */}
         {activeTab === 'list' && (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl animate-in fade-in zoom-in duration-300">
-            <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
+             {/* ... Contenido existente de lista de clientes ... */}
+             <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
               <Users size={24} className="text-[#F7931E]" />
               Gestión de Clientes
             </h2>
@@ -690,18 +938,30 @@ export default function AdminClientsManager({
               )}
               {!listLoading &&
                 clients
-                  .filter((c) => c.username.toLowerCase().includes(filter.toLowerCase()))
+                  .filter((c) => (c.displayName || c.username).toLowerCase().includes(filter.toLowerCase()))
                   .map((client) => (
                 <div key={client.username} className="rounded-xl border border-white/10 bg-black/20 p-5 hover:bg-black/30 transition-colors group">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                     <div>
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#F7931E] to-[#b35d00] flex items-center justify-center text-white font-bold text-lg">
-                          {client.username.substring(0, 1).toUpperCase()}
+                          {(client.displayName || client.username).substring(0, 1).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-semibold text-lg">{client.username}</p>
-                          <p className="text-xs text-white/50">Cliente ID: {client.username}</p>
+                          <p className="font-semibold text-lg">{client.displayName || client.username}</p>
+                          <div className="flex flex-col gap-0.5 text-xs text-white/50">
+                             <span>ID: {client.username}</span>
+                             {client.parentId && <span>Parent ID: {client.parentId}</span>}
+                             {client.roleId && (
+                                <span className="inline-flex items-center gap-1 mt-1">
+                                  <span className={`inline-block w-2 h-2 rounded-full ${
+                                    client.roleId === 1 ? 'bg-red-500' :
+                                    client.roleId === 2 ? 'bg-blue-500' : 'bg-green-500'
+                                  }`}></span>
+                                  {client.roleId === 1 ? 'Admin Root' : client.roleId === 2 ? 'Admin Customer' : 'Sub Customer'}
+                                </span>
+                             )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -715,7 +975,7 @@ export default function AdminClientsManager({
                       {deleteLoading === client.username ? 'Eliminando...' : 'Eliminar'}
                     </button>
                   </div>
-                  
+                  {(client.roleId === 2 || client.roleId === 3) && (
                   <div className="bg-white/5 rounded-lg p-3">
                     <p className="text-xs text-white/40 mb-3 uppercase tracking-wider font-medium">Módulos Activos</p>
                     <div className="grid gap-2 sm:grid-cols-3">
@@ -747,15 +1007,17 @@ export default function AdminClientsManager({
                       ))}
                     </div>
                   </div>
+                  )}
                 </div>
                   ))}
             </div>
           </div>
         )}
 
-        {/* TAB: MIS USUARIOS (ADMIN CUSTOMER) */}
+        {/* ... (TAB: MIS USUARIOS - se mantiene igual, ya está en el código existente) */}
         {activeTab === 'my-users' && canUseUsuarios && (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl animate-in fade-in zoom-in duration-300">
+             {/* ... (Contenido original de Mis Usuarios) ... */}
             <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
               <UserCog size={24} className="text-[#F7931E]" />
               Mis Usuarios (Sub Customers)
@@ -808,9 +1070,391 @@ export default function AdminClientsManager({
           </div>
         )}
 
-        {/* TAB: Tipos de máquina (Grabaciones) */}
-        {activeTab === 'machine-types' && sessionRoleId === 2 && modulesState.grabaciones && (
+        {/* TAB: MAQUINAS (NUEVO) */}
+        {activeTab === 'machines' && sessionRoleId === 2 && modulesState.grabaciones && (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl animate-in fade-in zoom-in duration-300">
+             <div className="flex items-center justify-between mb-6">
+               <h2 className="text-xl font-semibold text-white">Maquinas</h2>
+               {!isEditingMachine && (
+                 <button 
+                   onClick={openCreateMachine}
+                   className="flex items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-2 text-sm font-bold text-[#1f1203] hover:bg-[#e7830e]"
+                 >
+                   <Plus size={16} />
+                   Nueva Máquina
+                 </button>
+               )}
+             </div>
+
+             {machineError && (
+              <p className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-red-300 text-sm">
+                {machineError}
+              </p>
+             )}
+
+             {isEditingMachine ? (
+               /* FORMULARIO MAQUINA */
+               <div className="bg-white text-black p-6 rounded-lg max-w-4xl mx-auto shadow-xl">
+                 <h3 className="text-center text-xl font-bold mb-6 border-b pb-2">Maquinas</h3>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    {/* Columna Izquierda */}
+                    <div className="space-y-3">
+                       <div className="flex items-center gap-2">
+                          <label className="w-32 font-bold">Equipo</label>
+                          <input 
+                            className="flex-1 border rounded px-2 py-1" 
+                            value={machineForm.name}
+                            onChange={e => setMachineForm(p => ({...p, name: e.target.value}))}
+                          />
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <label className="w-32 font-bold">Tipo</label>
+                          <select 
+                            className="flex-1 border rounded px-2 py-1 uppercase"
+                            value={machineForm.machine_type_id ?? ''}
+                            onChange={e => setMachineForm(p => ({...p, machine_type_id: Number(e.target.value) || undefined}))}
+                          >
+                             <option value="">Seleccione...</option>
+                             {machineTypes.map(mt => (
+                               <option key={mt.id} value={mt.id}>{mt.name}</option>
+                             ))}
+                          </select>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <label className="w-32 font-bold">Marca</label>
+                          <input 
+                            className="flex-1 border rounded px-2 py-1"
+                            value={machineForm.brand}
+                            onChange={e => setMachineForm(p => ({...p, brand: e.target.value}))}
+                          />
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <label className="w-32 font-bold">Modelo</label>
+                          <input 
+                            className="flex-1 border rounded px-2 py-1"
+                            value={machineForm.model}
+                            onChange={e => setMachineForm(p => ({...p, model: e.target.value}))}
+                          />
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <label className="w-32 font-bold">Año</label>
+                          <input 
+                            className="w-24 border rounded px-2 py-1"
+                            value={machineForm.year}
+                            onChange={e => setMachineForm(p => ({...p, year: e.target.value}))}
+                          />
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <label className="w-32 font-bold">Serie</label>
+                          <input 
+                            className="flex-1 border rounded px-2 py-1"
+                            value={machineForm.serial_number}
+                            onChange={e => setMachineForm(p => ({...p, serial_number: e.target.value}))}
+                          />
+                       </div>
+                       
+                       <div className="flex items-center gap-2 mt-4">
+                          <label className="w-32 font-bold">Combustible</label>
+                          <select 
+                             className="border rounded px-2 py-1"
+                             value={machineForm.fuel_type}
+                             onChange={e => setMachineForm(p => ({...p, fuel_type: e.target.value}))}
+                          >
+                             <option value="DIESEL">DIESEL</option>
+                             <option value="GASOLINA">GASOLINA</option>
+                             <option value="ELECTRICO">ELECTRICO</option>
+                             <option value="GAS">GAS</option>
+                          </select>
+                       </div>
+                       
+                       <div className="flex items-center gap-2">
+                          <label className="w-32 font-bold">Tipo de Control</label>
+                          <div className="flex gap-4">
+                             <label className="flex items-center gap-1">
+                               <input 
+                                 type="radio" 
+                                 name="control_type" 
+                                 checked={machineForm.control_type === 'Horometro'} 
+                                 onChange={() => setMachineForm(p => ({...p, control_type: 'Horometro'}))}
+                               />
+                               Horometro
+                             </label>
+                             <label className="flex items-center gap-1">
+                               <input 
+                                 type="radio" 
+                                 name="control_type" 
+                                 checked={machineForm.control_type === 'Kilometraje'} 
+                                 onChange={() => setMachineForm(p => ({...p, control_type: 'Kilometraje'}))}
+                               />
+                               Kilometraje
+                             </label>
+                          </div>
+                       </div>
+                       
+                       <div className="flex items-center gap-2">
+                          <label className="w-32 font-bold text-xs leading-tight">Frecuencia de Mantenimiento</label>
+                          <input 
+                             className="flex-1 border rounded px-2 py-1"
+                             value={machineForm.maintenance_interval}
+                             onChange={e => setMachineForm(p => ({...p, maintenance_interval: e.target.value}))}
+                          />
+                       </div>
+                    </div>
+
+                    {/* Columna Derecha */}
+                    <div className="space-y-3">
+                       <div className="flex flex-col gap-1">
+                          <label className="font-bold">Observaciones:</label>
+                          <textarea 
+                             className="border rounded p-2 h-24 resize-none"
+                             value={machineForm.observations}
+                             onChange={e => setMachineForm(p => ({...p, observations: e.target.value}))}
+                          />
+                       </div>
+                       
+                       {/* SECCIÓN DE ADJUNTOS (REEMPLAZO) */}
+                       <div className="flex flex-col gap-2 p-3 bg-gray-50 border border-gray-200 rounded">
+                          <label className="font-bold text-xs flex items-center gap-2">
+                            <Upload size={14} /> Documentos Adjuntos
+                          </label>
+                          <p className="text-[10px] text-gray-500">
+                            Manuales, planos, fichas técnicas, tarjetas de propiedad, etc.
+                          </p>
+                          
+                          {/* File Input */}
+                          <div className="flex items-center gap-2">
+                             <input 
+                               type="file" 
+                               multiple
+                               className="hidden"
+                               ref={fileInputRef}
+                               onChange={handleFileSelect}
+                             />
+                             <button
+                               type="button"
+                               onClick={() => fileInputRef.current?.click()}
+                               disabled={uploadingFile}
+                               className="w-full text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-3 rounded flex items-center justify-center gap-2 disabled:opacity-50"
+                             >
+                               {uploadingFile ? 'Subiendo...' : 'Adjuntar Archivos'}
+                             </button>
+                          </div>
+
+                          {/* File List */}
+                          {(machineForm.files && machineForm.files.length > 0) && (
+                            <div className="space-y-1 mt-1 max-h-32 overflow-y-auto">
+                              {machineForm.files.map((file, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs bg-white border p-1 rounded">
+                                  <a 
+                                    href={file.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="flex items-center gap-1 text-blue-600 hover:underline truncate max-w-[150px]"
+                                    title={file.name}
+                                  >
+                                    <FileText size={12} /> {file.name}
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFile(idx)}
+                                    className="text-red-400 hover:text-red-600 px-1"
+                                    title="Quitar"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                       </div>
+                       
+                       <div className="flex items-center gap-2 mt-4">
+                          <label className="w-40 font-bold text-xs">Crear centro de costo:</label>
+                          <input 
+                             type="checkbox" 
+                             checked={machineForm.create_cost_center}
+                             onChange={e => setMachineForm(p => ({...p, create_cost_center: e.target.checked}))}
+                          />
+                       </div>
+                       
+                       <div className="flex items-center gap-2">
+                          <label className="w-40 font-bold text-xs">Maquina activa:</label>
+                          <div className="flex gap-4">
+                             <label className="flex items-center gap-1">
+                               <input 
+                                 type="radio" 
+                                 name="is_active" 
+                                 checked={machineForm.is_active === true} 
+                                 onChange={() => setMachineForm(p => ({...p, is_active: true}))}
+                               />
+                               SI
+                             </label>
+                             <label className="flex items-center gap-1">
+                               <input 
+                                 type="radio" 
+                                 name="is_active" 
+                                 checked={machineForm.is_active === false} 
+                                 onChange={() => setMachineForm(p => ({...p, is_active: false}))}
+                               />
+                               NO
+                             </label>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+                 
+                 {/* Información del motor */}
+                 <div className="mt-8 border border-gray-400">
+                    <div className="bg-gray-600 text-white px-2 py-1 font-bold text-sm">
+                       Informacion del motor
+                    </div>
+                    <div className="p-4">
+                       <button 
+                         type="button"
+                         onClick={() => setShowEngineForm(true)}
+                         className="border border-gray-400 px-2 py-1 text-xs mb-4 bg-gray-100 hover:bg-gray-200"
+                       >
+                         Agregar Motor
+                       </button>
+
+                       {/* Formulario de Motor (Inline) */}
+                       {showEngineForm && (
+                         <div className="mb-4 p-3 bg-gray-100 border rounded grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                            <input placeholder="Marca" className="border p-1" value={engineForm.brand} onChange={e => setEngineForm(p => ({...p, brand: e.target.value}))} />
+                            <input placeholder="Serie" className="border p-1" value={engineForm.serial_number} onChange={e => setEngineForm(p => ({...p, serial_number: e.target.value}))} />
+                            <input placeholder="Tipo" className="border p-1" value={engineForm.type} onChange={e => setEngineForm(p => ({...p, type: e.target.value}))} />
+                            <input placeholder="Potencia" className="border p-1" value={engineForm.power} onChange={e => setEngineForm(p => ({...p, power: e.target.value}))} />
+                            <input placeholder="Ubicacion" className="border p-1" value={engineForm.location} onChange={e => setEngineForm(p => ({...p, location: e.target.value}))} />
+                            <input placeholder="Descripcion" className="border p-1 col-span-2" value={engineForm.description} onChange={e => setEngineForm(p => ({...p, description: e.target.value}))} />
+                            <div className="col-span-1 flex gap-2">
+                               <button onClick={addEngine} className="bg-green-500 text-white px-2 py-1 rounded">OK</button>
+                               <button onClick={() => setShowEngineForm(false)} className="bg-red-500 text-white px-2 py-1 rounded">X</button>
+                            </div>
+                         </div>
+                       )}
+
+                       {/* Tabla de Motores */}
+                       <table className="w-full text-xs text-left">
+                          <thead className="border-b font-bold">
+                             <tr>
+                                <th className="py-1">Marca</th>
+                                <th className="py-1">Serie</th>
+                                <th className="py-1">Tipo</th>
+                                <th className="py-1">Potencia</th>
+                                <th className="py-1">Ubicacion</th>
+                                <th className="py-1">Descripcion</th>
+                                <th className="py-1">Acciones</th>
+                             </tr>
+                          </thead>
+                          <tbody>
+                             {(!machineForm.engines || machineForm.engines.length === 0) && (
+                                <tr><td colSpan={7} className="py-4 text-center text-gray-400">Sin información de motor</td></tr>
+                             )}
+                             {machineForm.engines?.map((eng, idx) => (
+                                <tr key={idx} className="border-b last:border-0">
+                                   <td className="py-1">{eng.brand}</td>
+                                   <td className="py-1">{eng.serial_number}</td>
+                                   <td className="py-1">{eng.type}</td>
+                                   <td className="py-1">{eng.power}</td>
+                                   <td className="py-1">{eng.location}</td>
+                                   <td className="py-1">{eng.description}</td>
+                                   <td className="py-1">
+                                      <button onClick={() => removeEngine(idx)} className="text-red-500 hover:text-red-700">Eliminar</button>
+                                   </td>
+                                </tr>
+                             ))}
+                          </tbody>
+                       </table>
+                    </div>
+                 </div>
+
+                 {/* Botonera */}
+                 <div className="flex items-center justify-center gap-2 mt-6 text-xs">
+                    <button 
+                      type="button" 
+                      onClick={() => setMachineForm(defaultMachineForm)}
+                      className="border border-gray-400 px-3 py-1 bg-gray-100 hover:bg-gray-200"
+                    >
+                      Nuevo
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsEditingMachine(false)}
+                      className="border border-gray-400 px-3 py-1 bg-gray-100 hover:bg-gray-200"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleSaveMachine}
+                      disabled={machinesLoading || uploadingFile}
+                      className="border border-gray-400 px-3 py-1 bg-gray-100 hover:bg-gray-200 font-bold"
+                    >
+                      {machinesLoading ? 'Guardando...' : 'Guardar'}
+                    </button>
+                    <button type="button" className="border border-gray-400 px-3 py-1 bg-gray-100 hover:bg-gray-200">Buscar</button>
+                    <button type="button" className="border border-gray-400 px-3 py-1 bg-gray-100 hover:bg-gray-200">Visualizar QR</button>
+                 </div>
+                 
+                 <div className="flex justify-end gap-1 mt-4 text-xs text-gray-500">
+                    <button className="border px-2">{'<<'}</button>
+                    <button className="border px-2">{'<'}</button>
+                    <button className="border px-2">{'>'}</button>
+                    <button className="border px-2">{'>>'}</button>
+                 </div>
+               </div>
+             ) : (
+               /* LISTADO DE MAQUINAS */
+               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                 {machinesLoading && <p className="text-white/50 text-center col-span-full">Cargando máquinas...</p>}
+                 {!machinesLoading && machines.length === 0 && (
+                   <p className="text-white/50 text-center col-span-full py-10">No hay máquinas creadas.</p>
+                 )}
+                 {machines.map(m => (
+                    <div key={m.id} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+                       <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-bold text-lg text-white">{m.name}</h3>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${m.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                             {m.is_active ? 'ACTIVA' : 'INACTIVA'}
+                          </span>
+                       </div>
+                       <div className="text-sm text-white/60 space-y-1 mb-4">
+                          <p>Tipo: {m.machine_type_name ?? 'N/A'}</p>
+                          <p>Marca: {m.brand}</p>
+                          <p>Modelo: {m.model}</p>
+                          <p>Serie: {m.serial_number}</p>
+                          {m.files && m.files.length > 0 && (
+                            <p className="flex items-center gap-1 text-white/40 mt-2">
+                              <Upload size={12} /> {m.files.length} Documentos
+                            </p>
+                          )}
+                       </div>
+                       <div className="flex gap-2 justify-end pt-2 border-t border-white/5">
+                          <button 
+                             onClick={() => openEditMachine(m)}
+                             className="flex items-center gap-1 text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded text-white"
+                          >
+                             <Pencil size={12} /> Editar
+                          </button>
+                          <button 
+                             onClick={() => handleDeleteMachine(m.id)}
+                             className="flex items-center gap-1 text-xs bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded text-red-300"
+                          >
+                             <Trash2 size={12} /> Eliminar
+                          </button>
+                       </div>
+                    </div>
+                 ))}
+               </div>
+             )}
+          </div>
+        )}
+
+        {/* ... (TAB: Machine Types - se mantiene igual) ... */}
+        {activeTab === 'machine-types' && sessionRoleId === 2 && modulesState.grabaciones && (
+           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl animate-in fade-in zoom-in duration-300">
+             {/* ... contenido machine types ... */}
             <h2 className="text-xl font-semibold mb-4 text-white">Grabaciones · Tipos de máquina</h2>
             {mtError && (
               <p className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-red-300 text-sm">
@@ -910,7 +1554,6 @@ export default function AdminClientsManager({
             </div>
           </div>
         )}
-      </div>
 
       {/* EDIT MODAL */}
       {editingUser && (
@@ -984,8 +1627,8 @@ export default function AdminClientsManager({
           </div>
         </div>
       )}
+
+      </div>
     </div>
   );
 }
-
-

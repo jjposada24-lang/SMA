@@ -130,6 +130,22 @@ export async function getChildrenUsers(parentId: number): Promise<PublicUser[]> 
   return Promise.all(users.map(publicFromDb));
 }
 
+// Obtener TODOS los usuarios (para Admin Root)
+export async function getAllUsers(): Promise<PublicUser[]> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .is('deleted', null);
+
+  if (error) {
+    console.error('getAllUsers error', error);
+    return [];
+  }
+  const users = (data as DbUser[]) || [];
+  return Promise.all(users.map(publicFromDb));
+}
+
 export type UpdateUserInput = {
   nombre?: string;
   cedula?: string;
@@ -179,4 +195,3 @@ export async function deleteUser(username: string): Promise<boolean> {
   }
   return true;
 }
-

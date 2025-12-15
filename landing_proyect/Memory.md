@@ -13,7 +13,7 @@
 - Gestión de tema/idioma: estado global en `app/page.tsx`, persistido en `localStorage`, aplicado vía `data-theme` y props de idioma.
 - Controles de tema/idioma: componente flotante fijo (`FloatingControls`), siempre visible.
 - Pendiente: pruebas E2E / unitarias; pipeline CI; lint/format.
-- Supabase: cliente `@supabase/supabase-js` con helpers `lib/supabase-browser.ts` y `lib/supabase-server.ts`; variables en `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
+- Supabase: cliente `@supabase/supabase-js` y `@supabase/ssr` con helpers `lib/supabase-browser.ts` y `lib/supabase-server.ts`; variables en `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
 
 ## Estructura inicial del front y backend
 - Frontend (actual):
@@ -25,7 +25,8 @@
   - `lib/ui-types.ts`: tipos para tema e idioma.
   - `public/`: logos y assets estáticos.
 - Backend (actual):
-  - Sin backend externo; APIs de Next para login, logout, gestión de usuarios/clientes (solo dev/local).
+  - Integrado en Next.js (Server Actions y Route Handlers).
+  - APIs de login, logout, gestión de usuarios, clientes, tipos de máquina y máquinas.
 
 ## Estrategia inicial de manejo de PDFs
 - Pendiente de definir. Opciones:
@@ -45,25 +46,39 @@
   - Sin sesión o rol incorrecto → `/login?from=...`.
 
 ## Clientes y módulos (admin)
-- Aún en `data/clients.json` (pendiente migrar a Supabase). Inicial `cliente_demo` con `{ usuarios: true, grabaciones: false, movimientos: true }`.
-- Módulos: `usuarios`, `grabaciones`, `movimientos`. Funciones: `getClients()`, `toggleModule()`, `addClient()`.
-- API admin: `GET/POST /api/admin/clients`. UI: `AdminClientsManager` muestra listado, búsqueda y toggles; incluye eliminar cliente/usuario; botón de logout.
-- Módulo “usuarios” se activa por defecto al crear cliente. Para rol 2, los módulos activos se consultan desde `/api/admin/clients` (que ahora devuelve el cliente del propio userId/username) para pintar el sidebar. Root (rol 1) sigue viendo todos.
+- Configuración de módulos en `data/clients.json` (usuarios, grabaciones, movimientos).
+- La gestión de usuarios y clientes ahora consulta directamente la tabla `users` de Supabase para obtener todos los registros (roles 1, 2 y 3) y combina esta información con la configuración de módulos del JSON.
+- API admin: `GET/POST /api/admin/clients` y `GET/POST/PUT/DELETE /api/admin/users`.
+- UI: `AdminClientsManager` permite ver y gestionar usuarios con su jerarquía (mostrando Parent ID y Rol), y asignar módulos tanto a Admin Customer como Sub Customer.
 
 ## Creación de usuarios (admin)
-- Persistentes en Supabase (`users`). API `POST /api/admin/users` acepta `{ nombre, cedula, mail, password, roleId }`. Reglas: admin_root (1) crea admin_customer (2); admin_customer (2) crea sub_customer (3). `parent_id` = `user_id` del creador. Si se crea admin_customer, se agrega cliente en JSON con su `user_id` (para módulos) hasta migrar módulos a BD.
+- Persistentes en Supabase (`users`). API `POST /api/admin/users`.
+- Reglas: admin_root (1) crea admin_customer (2); admin_customer (2) crea sub_customer (3). `parent_id` = `user_id` del creador.
 
-## Módulo Grabaciones → Tipos de máquina (rol 2)
-- BD: tabla `machine_types` (`id` bigserial, `owner_id` FK a `users.user_id`, `machine_id` smallint NOT NULL, `name` text, `deleted` timestamptz, `created_at`). Índice único `(owner_id, machine_id)` ignorando deleted.
-- Borrado lógico (`deleted` con timestamp). `machine_id` validado como entero 1..32767; `name` se almacena en mayúsculas.
-- API `/api/machine-types` (solo rol 2):  
-  - `GET` lista del owner.  
-  - `POST {name, machineId}` crea.  
-  - `PUT {id, name, machineId}` edita.  
-  - `DELETE {id}` soft delete.
-- Front: en `AdminClientsManager`, el bloque “Grabaciones” muestra opción “Tipos de máquina” y carga formulario/lista en panel central. Campo único numérico para ID de máquina; listado muestra Machine ID y BD ID; edición/eliminación disponibles.
+## Módulo Grabaciones (Rol 2 - Admin Customer)
+Funcionalidad exclusiva para usuarios con Rol 2. Incluye:
+
+### 1. Tipos de máquina
+- BD: tabla `machine_types` (`id`, `owner_id`, `machine_id` numérico, `name`, `deleted`).
+- CRUD completo via `/api/machine-types`.
+- Frontend: Gestión en pestaña "Tipos de máquina".
+
+### 2. Máquinas (Nueva Funcionalidad)
+- BD: 
+  - Tabla `machines`: almacena datos generales (`owner_id`, `machine_type_id`, `name`, `brand`, `model`, `serial_number`, etc.).
+  - Tabla `machine_engines`: relación 1:N con máquinas, almacena detalles de motores.
+  - Tabla `machine_files`: almacena referencias a archivos adjuntos (manuales, planos, etc.) subidos a Storage.
+- Storage: Bucket `machine-files` en Supabase para documentos (PDFs, imágenes). Acceso público para lectura, autenticado para escritura.
+- API: `/api/machines` soporta operaciones CRUD completas, incluyendo gestión transaccional de motores y archivos.
+- Frontend: 
+  - Formulario detallado tipo "ficha técnica" con campos de control (horómetro/kilometraje), combustible, mantenimientos, etc.
+  - Sub-formulario dinámico para agregar múltiples motores.
+  - Botón "Adjuntar Archivos" que permite subir múltiples documentos directamente a Supabase Storage y visualizarlos en lista.
+  - Vista de lista tipo tarjetas para visualizar máquinas creadas, editar o eliminar.
 
 ## UI/UX de módulos y sidebar
-- Sidebar: “Usuarios” con subopciones “Crear usuario” y “Mis Usuarios”; “Grabaciones” con “Tipos de máquina”; “Movimientos” placeholder.
+- Sidebar dinámico:
+  - "Usuarios": con subopciones "Crear usuario" y "Mis Usuarios" (para Rol 2).
+  - "Grabaciones": despliega opciones "Tipos de máquina" y "Máquinas".
+  - "Movimientos": placeholder por implementar.
 - Para rol 2, se muestran módulos activos (usuarios/grabaciones/movimientos) según cliente asociado. Para rol 1, vista de clientes y módulos completa.
-

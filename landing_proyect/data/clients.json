@@ -22,5 +22,13 @@
       "grabaciones": true,
       "movimientos": true
     }
+  },
+  {
+    "username": "1001",
+    "modules": {
+      "usuarios": true,
+      "grabaciones": true,
+      "movimientos": false
+    }
   }
 ]
