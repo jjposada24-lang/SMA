@@ -508,19 +508,25 @@ export default function AdminClientsManager({
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${sessionUserId}/${fileName}`; // Estructura: userId/filename
 
-        const { error: uploadError } = await client.storage
-          .from('machine-files')
-          .upload(filePath, file);
+        // Usar nuestro endpoint API proxy para subir el archivo de forma segura
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('path', filePath);
 
-        if (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          setMachineError(`Error al subir archivo ${file.name}`);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error('Error uploading file:', data.error);
+          setMachineError(`Error al subir archivo ${file.name}: ${data.error}`);
           continue;
         }
 
-        const { data: { publicUrl } } = client.storage
-          .from('machine-files')
-          .getPublicUrl(filePath);
+        const publicUrl = data.url;
 
         newFiles.push({
           name: file.name,
